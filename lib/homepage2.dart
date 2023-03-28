@@ -119,6 +119,35 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     });
   }
 
+  void _onDiscardButtonPressed(BuildContext context) async {
+    // perform the discard operation
+
+    // Make HTTP GET request to retrieve pile state
+    final url = Uri.parse('http://127.0.0.1:5000/pile');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      // Check if Player2 picked a card from the closed pile
+      final player2Pile = jsonData['Pile'];
+      if (player2Pile == 'Closed') {
+        // Show the alert dialog box to notify player 1
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Text('Player 2 picked a card from the $player2Pile pile'),
+          ),
+        );
+        await Future.delayed(Duration(seconds: 2));
+        Navigator.pop(context); // Dismiss the alert dialog box
+      }
+    } else {
+      throw Exception('Failed to load pile state');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double cardWidth = 150.0;
@@ -293,7 +322,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                     if (selectedCardIndex == i)
                       Positioned(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             setState(() {
                               final discardedCard =
                                   currentCards.removeAt(selectedCardIndex);
@@ -302,7 +331,22 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
                               // Call the HTTP function here with the card details
                               _discardCardHttpCall(discardedCard);
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => AlertDialog(
+                                  content:
+                                      Text("Please wait for Player's 2 turn"),
+                                ),
+                              );
                             });
+                            await Future.delayed(Duration(seconds: 2));
+                            Navigator.popUntil(
+                                context,
+                                ModalRoute.withName(Navigator
+                                    .defaultRouteName)); // pop all routes until the home route
+                            _onDiscardButtonPressed(
+                                context); // call the desired function
                           },
                           child: const Text("Discard"),
                         ),
