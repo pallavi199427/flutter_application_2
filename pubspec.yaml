@@ -40,6 +40,7 @@ dependencies:
   responsive: ^0.3.11+11
   reorderables: ^0.6.0
   circular_countdown_timer: ^0.2.3
+  random_avatar: ^0.0.8
 
 dev_dependencies:
   flutter_test:
@@ -105,3 +106,4 @@ physics: ^1.0.0
 animating: ^2.0.0
 responsive: ^0.3.11+11
 reorderables: ^0.6.0
+random_avatar: any

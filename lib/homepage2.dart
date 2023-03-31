@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
 import 'package:reorderables/reorderables.dart';
+import 'package:random_avatar/random_avatar.dart';
 
 class MyHomePage2 extends StatefulWidget {
   @override
@@ -19,7 +20,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   bool _showAddButton = true;
   List<PlayingCard> discardPile = [];
   List<PlayingCard> currentCards = [];
-  late PlayingCard joker;
+  List<PlayingCard> joker = [];
   List<PlayingCard> remainingCards = [];
   int selectedCardIndex = -1;
   int selectedDiscardCardIndex = -1;
@@ -27,14 +28,32 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   void initState() {
     super.initState();
 
-    currentPlayer = 2;
-    joker = PlayingCard(Suit.clubs, CardValue.nine);
+    _fetchGameStateData();
+    _fetchJoker();
+  }
 
-    _fetchGameStateData(); // Call new method to fetch game state data
+  void _fetchJoker() async {
+    final url = Uri.parse('http://0.0.0.0:5000/joker');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      // Parse joker card
+      final cardValue = jsonData['CardValue'];
+      final suit = jsonData['Suit'];
+      final jokerCard = PlayingCard(
+        Suit.values.byName(suit),
+        CardValue.values.byName(cardValue),
+      );
+      joker = [jokerCard];
+      setState(() {}); // Update the UI with the new joker card
+    } else {
+      throw Exception('Failed to load joker card');
+    }
   }
 
   void _fetchGameStateData() async {
-    final url = Uri.parse('http://127.0.0.1:5000');
+    final url = Uri.parse('http://0.0.0.0:5000');
     final response =
         await http.get(url); // Make HTTP GET request to retrieve game state
 
@@ -43,14 +62,14 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
       // Parse discard pile card
       final discardData = jsonData['discard_pile'];
-      final suit = discardData['Suit'];
-      final cardValue = discardData['CardValue'];
-      discardPile = [
-        PlayingCard(
-          Suit.values.byName(suit),
-          CardValue.values.byName(cardValue),
-        )
-      ];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
+        return PlayingCard(
+          Suit.values.byName(card['Suit']),
+          CardValue.values.byName(card['CardValue']),
+        );
+      }));
+      discardPile = discardCards;
 
       // Parse player 1 cards
       final player1CardsData = jsonData['player1_cards'];
@@ -89,7 +108,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
     final url =
-        'http://localhost:5000/add_card/${card.suit.name.toLowerCase()}/${card.value.name.toLowerCase()}';
+        'http://0.0.0.0:5000/add_card/${card.suit.name.toLowerCase()}/${card.value.name.toLowerCase()}';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -109,6 +128,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     }
   }
 
+  void _showDiscardCardSnackbar() {
+    final snackbar = SnackBar(
+      content: Text('Discard a card first to continue'),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackbar);
+  }
+
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
       if (newIndex > oldIndex) {
@@ -123,7 +149,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     // perform the discard operation
 
     // Make HTTP GET request to retrieve pile state
-    final url = Uri.parse('http://127.0.0.1:5000/pile');
+    final url = Uri.parse('http://0.0.0.0:5000/pile');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -176,8 +202,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     );
   }
 
-  Widget _buildJokerAndRemainingCardStack(
-      PlayingCard joker, List<PlayingCard> remainingCards, double cardWidth) {
+  Widget _buildJokerAndRemainingCardStack(List<PlayingCard> joker,
+      List<PlayingCard> remainingCards, double cardWidth) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -195,32 +221,36 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     );
   }
 
-  Widget _buildJoker(PlayingCard joker) {
-    return Positioned(
-      bottom: 280,
-      left: 460,
-      child: SizedBox(
-        height: 170,
-        width: 120,
-        child: Transform.rotate(
-          angle: math.pi / 2,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              PlayingCardView(
-                card: joker,
-                showBack: false,
-                elevation: 3.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(2),
-                  side: const BorderSide(color: Colors.red, width: 1),
+  Widget _buildJoker(List<PlayingCard> joker) {
+    final jokerCard = joker.isNotEmpty ? joker.first : null;
+
+    return jokerCard != null
+        ? Positioned(
+            bottom: 280,
+            left: 460,
+            child: SizedBox(
+              height: 170,
+              width: 120,
+              child: Transform.rotate(
+                angle: math.pi / 2,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PlayingCardView(
+                      card: jokerCard,
+                      showBack: false,
+                      elevation: 3.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(2),
+                        side: const BorderSide(color: Colors.red, width: 1),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+            ),
+          )
+        : const SizedBox();
   }
 
   Widget _buildRemainingCard(
@@ -238,7 +268,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         width: 120,
         child: GestureDetector(
           onTap: () {
-            _fetchGameStateData(); // Call _fetchGameStateData again to retrieve latest
+            if (currentCards.length == 14) {
+              _showDiscardCardSnackbar();
+            } else {
+              _fetchGameStateData();
+            }
           },
           child: PlayingCardView(
             card: card,
@@ -283,7 +317,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             ),
             GestureDetector(
               onTap: () {
-                _fetchGameStateData(); // Call _fetchGameStateData again to retrieve latest
+                if (currentCards.length == 14) {
+                  _showDiscardCardSnackbar();
+                } else {
+                  //  _fetchGameStateData();
+
+                  addFromDiscardPile();
+                }
               },
             ),
           ],
@@ -299,6 +339,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       ),
       child: ReorderableWrap(
         // ignore: sort_child_properties_last
+        needsLongPressDraggable: false,
+
         children: [
           for (int i = 0; i < currentCards.length; i++)
             GestureDetector(
@@ -315,7 +357,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                     PlayingCardView(
                       card: currentCards[i],
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                         side: const BorderSide(color: Colors.black, width: 1),
                       ),
                     ),
@@ -373,21 +415,29 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       height: 40.0,
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 5,
-            blurRadius: 7,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
-            child: const Text('Player1'),
-            onPressed: () {},
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              RandomAvatar(
+                'Player1',
+                height: 50.0,
+                width: 50.0,
+              ),
+              SizedBox(
+                  width:
+                      2.0), // add some spacing between the avatar and the text
+              Text(
+                'Player1',
+                style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           ElevatedButton(
             child: Text('Show'),
@@ -440,16 +490,26 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   Widget _buildImage() {
-    return Positioned(
-      bottom: 520,
-      left: 545,
-      child: Transform.rotate(
-        angle: 15 * 3.14159 / 180, // 15 degrees clockwise in radians
-        child: SizedBox(
-          width: 100,
-          height: 100,
-          child: Image.asset('assets/cards.png'),
-        ),
+    return SizedBox(
+      height: 280, // Adjust the value to move the widget downwards
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RandomAvatar(
+            'Player 2',
+            height: 50,
+            width: 50,
+          ),
+          SizedBox(width: 16.0),
+          Text(
+            'Player 2',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
