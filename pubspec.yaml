@@ -98,7 +98,10 @@ flutter:
   assets:
     - assets/background.jpg
     - assets/avatar.png
-    - assets/cards.png
+    - assets/cards.png   
+    - assets/backcard.png
+
+ 
 
 
 playing_cards: ^0.3.1+9

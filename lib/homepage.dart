@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
@@ -20,24 +21,36 @@ class _MyHomePageState extends State<MyHomePage> {
   int selectedCardIndex = -1;
   int _remainingSeconds = 30;
   Timer? _timer;
+  bool _showTimerWidget = true;
+  List<PlayingCard> discardPile = [];
+  List<PlayingCard> joker = [];
+  List<PlayingCard> remainingCards = [];
 
   void initState() {
     super.initState();
 
     _fetchGameStateData();
-    _startTimer(); // Call new method to fetch game state data
+    _fetchJoker();
   }
 
-  void _startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: 1), (_) {
-      setState(() {
-        _remainingSeconds--;
-        if (_remainingSeconds <= 0) {
-          _timer?.cancel();
-        }
-      });
-    });
+  void _fetchJoker() async {
+    final url = Uri.parse('http://0.0.0.0:5000/joker');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      // Parse joker card
+      final cardValue = jsonData['CardValue'];
+      final suit = jsonData['Suit'];
+      final jokerCard = PlayingCard(
+        Suit.values.byName(suit),
+        CardValue.values.byName(cardValue),
+      );
+      joker = [jokerCard];
+      setState(() {}); // Update the UI with the new joker card
+    } else {
+      throw Exception('Failed to load joker card');
+    }
   }
 
   void _fetchGameStateData() async {
@@ -58,7 +71,6 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }));
       currentCards = playingCards;
-      print(currentCards);
 
       setState(() {}); // Update the UI with the new game state data
     } else {
@@ -66,97 +78,107 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final card = currentCards.removeAt(oldIndex);
-      currentCards.insert(newIndex, card);
-    });
+  void _showDiscardCardSnackbar() {
+    final snackbar = SnackBar(
+      content: Text('Discard a card first to continue'),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
   @override
   Widget build(BuildContext context) {
+    final double cardWidth = 150.0;
+
     return Scaffold(
       body: Stack(
         children: [
-          _buildCurrentCard(),
-          Positioned(
-            top: 100.0,
-            left: 500.0,
-            child: _remainingTime(_remainingSeconds),
-          ),
+          _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
         ],
       ),
     );
   }
 
-  Widget _buildCurrentCard() {
-    return Container(
-      padding: const EdgeInsets.only(
-        top: 420.0,
-      ),
-      child: ReorderableWrap(
-        // ignore: sort_child_properties_last
-        children: [
-          for (int i = 0; i < currentCards.length; i++)
-            GestureDetector(
-              key: Key(currentCards[i].toString()),
-              onTap: () {
-                setState(() {
-                  selectedCardIndex = i;
-                });
-              },
-              child: SizedBox(
-                height: 125,
+  Widget _buildJokerAndRemainingCardStack(List<PlayingCard> joker,
+      List<PlayingCard> remainingCards, double cardWidth) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        _buildJoker(joker),
+        ...List<PlayingCard>.from(remainingCards.reversed)
+            .asMap()
+            .map((index, card) => MapEntry(
+                  index,
+                  _buildRemainingCard(
+                      card, cardWidth, remainingCards.length, index),
+                ))
+            .values
+            .toList(),
+      ],
+    );
+  }
+
+  Widget _buildJoker(List<PlayingCard> joker) {
+    final jokerCard = joker.isNotEmpty ? joker.first : null;
+
+    return jokerCard != null
+        ? Positioned(
+            bottom: 280,
+            left: 460,
+            child: SizedBox(
+              height: 170,
+              width: 120,
+              child: Transform.rotate(
+                angle: math.pi / 2,
                 child: Stack(
+                  alignment: Alignment.center,
                   children: [
                     PlayingCardView(
-                      card: currentCards[i],
+                      card: jokerCard,
+                      showBack: false,
+                      elevation: 3.0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: const BorderSide(color: Colors.black, width: 1),
+                        borderRadius: BorderRadius.circular(2),
+                        side: const BorderSide(color: Colors.red, width: 1),
                       ),
                     ),
-                    if (selectedCardIndex == i)
-                      Positioned(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {});
-                          },
-                          child: const Text("Discard"),
-                        ),
-                      ),
                   ],
                 ),
               ),
             ),
-        ],
-        onReorder: _onReorder,
-      ),
-    );
+          )
+        : const SizedBox();
   }
 
-  Widget _remainingTime(int remainingTime) {
-    return Container(
-      alignment: Alignment.center,
-      width: 100,
-      height: 100,
-      child: CircularCountDownTimer(
-        duration: remainingTime,
-        controller: CountDownController(),
-        width: 50,
-        height: 50,
-        ringColor: Colors.grey[300]!,
-        fillColor: Colors.blue[600]!,
-        strokeWidth: 10.0,
-        textStyle: const TextStyle(
-          fontSize: 20.0,
-          color: Colors.black,
+  Widget _buildRemainingCard(
+    PlayingCard card,
+    double cardWidth,
+    int remainingCardsCount,
+    int index,
+  ) {
+    final double top = index.toDouble() * 2.0;
+
+    return Positioned(
+      top: 240,
+      child: SizedBox(
+        height: 170,
+        width: 120,
+        child: GestureDetector(
+          onTap: () {
+            if (currentCards.length == 14) {
+              _showDiscardCardSnackbar();
+            } else {
+              _fetchGameStateData();
+            }
+          },
+          child: PlayingCardView(
+            card: card,
+            showBack: true,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(2),
+              side: const BorderSide(color: Colors.black, width: 1),
+            ),
+          ),
         ),
-        isReverse: true,
-        isTimerTextShown: true,
       ),
     );
   }

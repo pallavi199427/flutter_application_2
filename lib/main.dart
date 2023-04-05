@@ -3,6 +3,7 @@ import 'package:flutter_application_2/homepage2.dart';
 import 'package:flutter_application_2/homepage.dart';
 
 import 'package:flutter_application_2/splash.dart';
+import 'package:flutter_application_2/widgets/cardpickup.dart';
 
 void main() {
   runApp(MyApp());
