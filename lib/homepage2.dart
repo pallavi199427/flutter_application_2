@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
 import 'package:reorderables/reorderables.dart';
-import 'package:random_avatar/random_avatar.dart';
+import 'package:flutter_application_2/widgets/bottomBar.dart';
+import 'package:flutter_application_2/widgets/player2widget.dart';
+import 'package:flutter_application_2/widgets/background.dart';
 
 class MyHomePage2 extends StatefulWidget {
   @override
@@ -81,7 +83,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       currentCards = playingCards;
-      print(currentCards);
 
       // Parse remaining cards
       final remainingCardsData = jsonData['remaining_cards'];
@@ -112,7 +113,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
     try {
       final response = await http.get(Uri.parse(url));
-      print(response.body);
     } catch (error) {
       print(error);
     }
@@ -176,29 +176,18 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   @override
   Widget build(BuildContext context) {
-    final double cardWidth = 150.0;
+    const double cardWidth = 150.0;
     return Scaffold(
       body: Stack(
         children: [
-          _buildBackground(),
-          _buildImage(),
+          background(),
+          Player2Widget(),
           _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
           _buildCurrentCard(),
           _buildDiscardPile(),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
-    );
-  }
-
-  Widget _buildBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/background.jpg'),
-          fit: BoxFit.cover,
-        ),
-      ),
+      bottomNavigationBar: BottomBar(playerName: 'Player1'),
     );
   }
 
@@ -226,11 +215,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
     return jokerCard != null
         ? Positioned(
-            bottom: 280,
-            left: 460,
+            bottom: MediaQuery.of(context).size.height * 0.42,
+            left: MediaQuery.of(context).size.width * 0.37,
             child: SizedBox(
-              height: 170,
-              width: 120,
+              height: MediaQuery.of(context).size.height * 0.22,
+              width: MediaQuery.of(context).size.width * 0.12,
               child: Transform.rotate(
                 angle: math.pi / 2,
                 child: Stack(
@@ -259,13 +248,12 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     int remainingCardsCount,
     int index,
   ) {
-    final double top = index.toDouble() * 2.0;
-
     return Positioned(
-      top: 240,
+      bottom: MediaQuery.of(context).size.height * 0.43,
+      left: MediaQuery.of(context).size.width * 0.42,
       child: SizedBox(
-        height: 170,
-        width: 120,
+        height: MediaQuery.of(context).size.height * 0.21,
+        width: MediaQuery.of(context).size.width * 0.09,
         child: GestureDetector(
           onTap: () {
             if (currentCards.length == 14) {
@@ -292,11 +280,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         discardPile.isNotEmpty ? discardPile.last : null;
 
     return Positioned(
-      bottom: 280,
-      left: 750, // adjust the left position as needed
+      bottom: MediaQuery.of(context).size.height * 0.44,
+      left: MediaQuery.of(context).size.width * 0.59,
       child: SizedBox(
-        height: 170,
-        width: 120,
+        height: MediaQuery.of(context).size.height * 0.20,
+        width: MediaQuery.of(context).size.width * 0.15,
         child: Stack(
           children: [
             Container(
@@ -320,8 +308,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 if (currentCards.length == 14) {
                   _showDiscardCardSnackbar();
                 } else {
-                  //  _fetchGameStateData();
-
                   addFromDiscardPile();
                 }
               },
@@ -333,14 +319,22 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   Widget _buildCurrentCard() {
+    double topPadding = 0;
+    MediaQueryData? mediaQuery = MediaQuery.of(context);
+
+    if (mediaQuery != null) {
+      topPadding = mediaQuery.size.height * 0.6; // 50% of the screen height
+    }
+
     return Container(
-      padding: const EdgeInsets.only(
-        top: 420.0,
+      padding: EdgeInsets.only(
+        top: topPadding,
       ),
       child: ReorderableWrap(
         // ignore: sort_child_properties_last
         needsLongPressDraggable: false,
 
+        // ignore: sort_child_properties_last
         children: [
           for (int i = 0; i < currentCards.length; i++)
             GestureDetector(
@@ -399,117 +393,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             ),
         ],
         onReorder: _onReorder,
-      ),
-    );
-  }
-
-  Future<String> fetchWinner() async {
-    var response = await http.get(Uri.parse('http://127.0.0.1:5000/win'));
-    var jsonResponse = jsonDecode(response.body);
-    String win = jsonResponse['win'];
-    return win;
-  }
-
-  Widget _buildBottomBar() {
-    return Container(
-      height: 40.0,
-      decoration: BoxDecoration(
-        color: Colors.white,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              RandomAvatar(
-                'Player1',
-                height: 50.0,
-                width: 50.0,
-              ),
-              SizedBox(
-                  width:
-                      2.0), // add some spacing between the avatar and the text
-              Text(
-                'Player1',
-                style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          ElevatedButton(
-            child: Text('Show'),
-            onPressed: () async {
-              String win = await fetchWinner();
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    backgroundColor: Colors.grey[100],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    title: Text(
-                      'Winner',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    content: Text(
-                      win,
-                      style: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 16.0,
-                      ),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          'OK',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImage() {
-    return SizedBox(
-      height: 280, // Adjust the value to move the widget downwards
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          RandomAvatar(
-            'Player 2',
-            height: 50,
-            width: 50,
-          ),
-          SizedBox(width: 16.0),
-          Text(
-            'Player 2',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
