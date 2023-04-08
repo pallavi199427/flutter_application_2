@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class CardPickupAnimationWrapper extends StatefulWidget {
@@ -21,24 +23,24 @@ class _CardPickupAnimationWrapperState extends State<CardPickupAnimationWrapper>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-
+    print("animation called");
     _positionAnimation = Tween<double>(
       begin: 0.0,
-      end: 150.0,
+      end: -150.0,
     ).animate(_controller);
 
     _sizeAnimation = Tween<double>(
       begin: 1.0,
-      end: 0.2,
+      end: 0.0,
     ).animate(_controller);
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _controller.reverse();
       } else if (status == AnimationStatus.dismissed) {
         _controller.reset();
       }
     });
+    startAnimation();
   }
 
   @override
@@ -66,8 +68,7 @@ class _CardPickupAnimationWrapperState extends State<CardPickupAnimationWrapper>
     super.dispose();
   }
 
-  // Public method to start the animation
   void startAnimation() {
-    _controller.forward().whenComplete(() => _controller.reset());
+    _controller.forward();
   }
 }

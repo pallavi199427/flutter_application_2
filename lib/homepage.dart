@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
 import 'package:reorderables/reorderables.dart';
-import 'package:circular_countdown_timer/circular_countdown_timer.dart';
+import 'package:flutter_application_2/functions/card_value.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
@@ -29,60 +29,71 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    _fetchGameStateData();
-    _fetchJoker();
+    fetchGameStateData();
   }
 
-  void _fetchJoker() async {
-    final url = Uri.parse('http://0.0.0.0:5000/joker');
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body);
-
-      // Parse joker card
-      final cardValue = jsonData['CardValue'];
-      final suit = jsonData['Suit'];
-      final jokerCard = PlayingCard(
-        Suit.values.byName(suit),
-        CardValue.values.byName(cardValue),
-      );
-      joker = [jokerCard];
-      setState(() {}); // Update the UI with the new joker card
-    } else {
-      throw Exception('Failed to load joker card');
-    }
-  }
-
-  void _fetchGameStateData() async {
-    final url = Uri.parse('http://127.0.0.1:5000');
-    final response =
-        await http.get(url); // Make HTTP GET request to retrieve game state
+  void fetchGameStateData() async {
+    final url = Uri.parse('http://127.0.0.1:8000/InitializeGame');
+    var response = await http.get(url);
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
-      // Parse player 1 cards
-      final player1CardsData = jsonData['player1_cards'];
+      print("first initalizaition");
+
+      // Parse discard pile card
+      final discardData = jsonData['OpenDeck'];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      discardPile = discardCards;
+      print(discardPile);
+
+      final jokerPile = jsonData['Joker'];
+      List<PlayingCard> jokerCard =
+          List<PlayingCard>.from(jokerPile.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      joker = jokerCard;
+      print("here2");
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
       List<PlayingCard> playingCards =
           List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
         return PlayingCard(
-          Suit.values.byName(card['Suit']),
-          CardValue.values.byName(card['CardValue']),
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
         );
       }));
       currentCards = playingCards;
 
-      setState(() {}); // Update the UI with the new game state data
+      // Parse remaining cards (Closed deck)
+      final remainingCardsData = jsonData['ClosedDeck'];
+      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      setState(() {});
     } else {
       throw Exception('Failed to load game state');
     }
-  }
-
-  void _showDiscardCardSnackbar() {
-    final snackbar = SnackBar(
-      content: Text('Discard a card first to continue'),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
   @override
@@ -93,6 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Stack(
         children: [
           _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
+          _buildDropZone(),
         ],
       ),
     );
@@ -165,10 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: GestureDetector(
           onTap: () {
             if (currentCards.length == 14) {
-              _showDiscardCardSnackbar();
-            } else {
-              _fetchGameStateData();
-            }
+            } else {}
           },
           child: PlayingCardView(
             card: card,
@@ -182,4 +191,36 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+
+Widget _buildDropZone() {
+  return Positioned(
+    bottom: 20.0,
+    left: 20.0,
+    child: Container(
+      height: 100.0,
+      width: 100.0,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Color.fromRGBO(0, 0, 0, 1),
+          width: 2.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromARGB(15, 189, 142, 80),
+            blurRadius: 10.0,
+            spreadRadius: 1.0,
+            offset: Offset(2.0, 2.0),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          'Drop a card\nhere to show',
+          textAlign: TextAlign.center,
+        ),
+      ),
+    ),
+  );
 }

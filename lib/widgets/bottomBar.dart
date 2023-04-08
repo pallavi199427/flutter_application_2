@@ -50,7 +50,7 @@ class BottomBar extends StatelessWidget {
             ],
           ),
           ElevatedButton(
-            child: Text('Show'),
+            child: Text('Submit'),
             onPressed: () async {
               String win = await fetchWinner();
               showDialog(

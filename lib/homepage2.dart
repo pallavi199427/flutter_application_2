@@ -7,11 +7,11 @@ import 'package:reorderables/reorderables.dart';
 import 'package:flutter_application_2/widgets/bottomBar.dart';
 import 'package:flutter_application_2/widgets/player2widget.dart';
 import 'package:flutter_application_2/widgets/background.dart';
+import 'package:flutter_application_2/functions/card_value.dart';
 
 class MyHomePage2 extends StatefulWidget {
   @override
   _MyHomePageState2 createState() => _MyHomePageState2();
-
   void onCardDiscarded(PlayingCard currentCard) {}
 }
 
@@ -19,83 +19,260 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   // Declare variables at the top of the class
   late List<PlayingCard> deck;
   late int currentPlayer;
-  bool _showAddButton = true;
   List<PlayingCard> discardPile = [];
   List<PlayingCard> currentCards = [];
   List<PlayingCard> joker = [];
   List<PlayingCard> remainingCards = [];
   int selectedCardIndex = -1;
-  int selectedDiscardCardIndex = -1;
 
   void initState() {
     super.initState();
-
-    _fetchGameStateData();
-    _fetchJoker();
+    fetchGameStateData();
+    fetchGameStateData();
   }
 
-  void _fetchJoker() async {
-    final url = Uri.parse('http://0.0.0.0:5000/joker');
-    final response = await http.get(url);
+  void fetchGameStateData() async {
+    final url = Uri.parse('http://127.0.0.1:8000/InitializeGame');
+    var response = await http.get(url);
+
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
-      // Parse joker card
-      final cardValue = jsonData['CardValue'];
-      final suit = jsonData['Suit'];
-      final jokerCard = PlayingCard(
-        Suit.values.byName(suit),
-        CardValue.values.byName(cardValue),
-      );
-      joker = [jokerCard];
-      setState(() {}); // Update the UI with the new joker card
+      print("first initalizaition");
+
+      // Parse discard pile card
+      final discardData = jsonData['OpenDeck'];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      discardPile = discardCards;
+      print(discardPile);
+
+      final jokerPile = jsonData['Joker'];
+      List<PlayingCard> jokerCard =
+          List<PlayingCard>.from(jokerPile.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      joker = jokerCard;
+      print("here2");
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
+      List<PlayingCard> playingCards =
+          List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      currentCards = playingCards;
+
+      // Parse remaining cards (Closed deck)
+      final remainingCardsData = jsonData['ClosedDeck'];
+      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      setState(() {});
     } else {
-      throw Exception('Failed to load joker card');
+      throw Exception('Failed to load game state');
     }
   }
 
-  void _fetchGameStateData() async {
-    final url = Uri.parse('http://0.0.0.0:5000');
-    final response =
-        await http.get(url); // Make HTTP GET request to retrieve game state
+  void PickFromClosedDeck() async {
+    final url = Uri.parse('http://127.0.0.1:8000/PickFromClosedDeck');
+    final response = await http.get(url);
 
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
       // Parse discard pile card
-      final discardData = jsonData['discard_pile'];
+      final discardData = jsonData['OpenDeck'];
       List<PlayingCard> discardCards =
           List<PlayingCard>.from(discardData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
         return PlayingCard(
-          Suit.values.byName(card['Suit']),
-          CardValue.values.byName(card['CardValue']),
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
         );
       }));
       discardPile = discardCards;
 
-      // Parse player 1 cards
-      final player1CardsData = jsonData['player1_cards'];
+      final jokerPile = jsonData['Joker'];
+      List<PlayingCard> jokerCard =
+          List<PlayingCard>.from(jokerPile.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      joker = jokerCard;
+      print("here");
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
       List<PlayingCard> playingCards =
           List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
         return PlayingCard(
-          Suit.values.byName(card['Suit']),
-          CardValue.values.byName(card['CardValue']),
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
         );
       }));
       currentCards = playingCards;
 
-      // Parse remaining cards
-      final remainingCardsData = jsonData['remaining_cards'];
-      List<PlayingCard> remainingPlayingCards =
-          List<PlayingCard>.from(remainingCardsData.map((card) {
+      // Parse remaining cards (Closed deck)
+      final remainingCardsData = jsonData['ClosedDeck'];
+      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
         return PlayingCard(
-          Suit.values.byName(card['Suit']),
-          CardValue.values.byName(card['CardValue']),
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
         );
       }));
-      remainingCards = remainingPlayingCards;
+      setState(() {});
+    } else {
+      throw Exception('Failed to load game state');
+    }
+  }
 
-      setState(() {}); // Update the UI with the new game state data
+  void PickFromOpenDeck() async {
+    final url = Uri.parse('http://127.0.0.1:8000/PickFromOpenDeck');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      // Parse discard pile card
+      final discardData = jsonData['OpenDeck'];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      discardPile = discardCards;
+
+      final jokerPile = jsonData['Joker'];
+      List<PlayingCard> jokerCard =
+          List<PlayingCard>.from(jokerPile.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      joker = jokerCard;
+      print("here");
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
+      List<PlayingCard> playingCards =
+          List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      currentCards = playingCards;
+
+      // Parse remaining cards (Closed deck)
+      final remainingCardsData = jsonData['ClosedDeck'];
+      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      setState(() {});
+    } else {
+      throw Exception('Failed to load game state');
+    }
+  }
+
+  void DiscardCard() async {
+    final url = Uri.parse('http://127.0.0.1:8000/DiscardCard');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      // Parse discard pile card
+      final discardData = jsonData['OpenDeck'];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      discardPile = discardCards;
+
+      final jokerPile = jsonData['Joker'];
+      List<PlayingCard> jokerCard =
+          List<PlayingCard>.from(jokerPile.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      joker = jokerCard;
+      print("here");
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
+      List<PlayingCard> playingCards =
+          List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      currentCards = playingCards;
+
+      // Parse remaining cards (Closed deck)
+      final remainingCardsData = jsonData['ClosedDeck'];
+      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = parseCardValue(card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      setState(() {});
     } else {
       throw Exception('Failed to load game state');
     }
@@ -259,12 +436,12 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             if (currentCards.length == 14) {
               _showDiscardCardSnackbar();
             } else {
-              _fetchGameStateData();
+              PickFromClosedDeck();
             }
           },
           child: PlayingCardView(
             card: card,
-            showBack: true,
+            showBack: false,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(2),
               side: const BorderSide(color: Colors.black, width: 1),
@@ -308,7 +485,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 if (currentCards.length == 14) {
                   _showDiscardCardSnackbar();
                 } else {
-                  addFromDiscardPile();
+                  PickFromOpenDeck();
                 }
               },
             ),
@@ -366,7 +543,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                               selectedCardIndex = -1;
 
                               // Call the HTTP function here with the card details
-                              _discardCardHttpCall(discardedCard);
+                              DiscardCard();
                               showDialog(
                                 context: context,
                                 barrierDismissible: false,
@@ -381,8 +558,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                                 context,
                                 ModalRoute.withName(Navigator
                                     .defaultRouteName)); // pop all routes until the home route
-                            _onDiscardButtonPressed(
-                                context); // call the desired function
+                            // call the desired function
                           },
                           child: const Text("Discard"),
                         ),
