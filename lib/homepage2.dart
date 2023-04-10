@@ -24,10 +24,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   List<PlayingCard> joker = [];
   List<PlayingCard> remainingCards = [];
   int selectedCardIndex = -1;
+  String discardButtonName = "Discard";
+  PlayingCard? _discardedCard;
 
   void initState() {
     super.initState();
-    fetchGameStateData();
     fetchGameStateData();
   }
 
@@ -65,7 +66,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       joker = jokerCard;
-      print("here2");
       // Parse player 1 cards (Loosing hand)
       final player1CardsData = jsonData['Loosing Hand'];
       List<PlayingCard> playingCards =
@@ -295,6 +295,22 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     }
   }
 
+  void _onDiscardforShowButtonPressed() {
+    print("here");
+    setState(() {
+      discardButtonName = "Discard \nfor show";
+    });
+  }
+
+  void _onChangeButtonPressed() {
+    setState(() {
+      _discardedCard = currentCards.removeAt(selectedCardIndex);
+      selectedCardIndex = -1;
+      discardButtonName = "Discard";
+    });
+    _buildDropZone();
+  }
+
   void addFromDiscardPile() {
     if (discardPile.isNotEmpty) {
       PlayingCard topCard = discardPile.last;
@@ -362,6 +378,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
           _buildCurrentCard(),
           _buildDiscardPile(),
+          _buildDropZone(),
         ],
       ),
       bottomNavigationBar: BottomBar(playerName: 'Player1'),
@@ -535,32 +552,22 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                     if (selectedCardIndex == i)
                       Positioned(
                         child: ElevatedButton(
-                          onPressed: () async {
-                            setState(() {
-                              final discardedCard =
-                                  currentCards.removeAt(selectedCardIndex);
-                              discardPile.add(discardedCard);
-                              selectedCardIndex = -1;
-
-                              // Call the HTTP function here with the card details
-                              DiscardCard();
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (context) => AlertDialog(
-                                  content:
-                                      Text("Please wait for Player's 2 turn"),
-                                ),
-                              );
-                            });
-                            await Future.delayed(Duration(seconds: 2));
-                            Navigator.popUntil(
-                                context,
-                                ModalRoute.withName(Navigator
-                                    .defaultRouteName)); // pop all routes until the home route
-                            // call the desired function
+                          onPressed: () {
+                            if (discardButtonName == 'Discard') {
+                              // perform discard action
+                            } else if (discardButtonName == 'Change') {
+                              // perform second discard action
+                              setState(() {
+                                // perform second discard action
+                              });
+                            } else {
+                              // perform default action
+                              setState(() {
+                                _onChangeButtonPressed();
+                              });
+                            }
                           },
-                          child: const Text("Discard"),
+                          child: Text(discardButtonName),
                         ),
                       ),
                   ],
@@ -570,6 +577,63 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         ],
         onReorder: _onReorder,
       ),
+    );
+  }
+
+  Widget _buildDropZone() {
+    return Stack(
+      children: [
+        if (_discardedCard == null) // only render if _discardedCard is null
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.46,
+            left: MediaQuery.of(context).size.width * 0.25,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.15,
+              width: MediaQuery.of(context).size.width * 0.10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Color.fromRGBO(0, 0, 0, 1),
+                  width: 2.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color.fromARGB(15, 189, 142, 80),
+                    blurRadius: 10.0,
+                    spreadRadius: 1.0,
+                    offset: Offset(2.0, 2.0),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _onDiscardforShowButtonPressed();
+                  },
+                  child: Text(
+                    'Discard for show',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (_discardedCard != null) // only render if _discardedCard is not null
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.46,
+            left: MediaQuery.of(context).size.width * 0.25,
+            child: SizedBox(
+              height: 125, // set height of the SizedBox to 125
+              child: PlayingCardView(
+                card: _discardedCard!,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: Colors.black.withOpacity(0.3)),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
