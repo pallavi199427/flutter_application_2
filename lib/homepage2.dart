@@ -89,19 +89,23 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void initState() {
     super.initState();
-    fetchData('http://127.0.0.1:8000/InitializeGame');
+    fetchData('http://0.0.0.0:8000/InitializeGame');
   }
 
   void PickFromClosedDeck() async {
-    fetchData('http://127.0.0.1:8000/PickFromClosedDeck');
+    fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
   }
 
   void PickFromOpenDeck() async {
-    fetchData('http://127.0.0.1:8000/PickFromOpenDeck');
+    fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
   }
 
   void DiscardCard() async {
-    fetchData('http://127.0.0.1:8000/DiscardCard');
+    fetchData('http://0.0.0.0:8000/DiscardCard');
+  }
+
+  void fetchWinner() async {
+    fetchData('http://0.0.0.0:8000/WinGame');
   }
 
   void addToDiscardPile(PlayingCard card) {
