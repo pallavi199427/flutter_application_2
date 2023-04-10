@@ -14,7 +14,7 @@ class BottomBar extends StatelessWidget {
   final String playerName;
 
   Future<String> fetchWinner() async {
-    var response = await http.get(Uri.parse('http://127.0.0.1:5000/win'));
+    var response = await http.get(Uri.parse('http://127.0.0.1:8000/WinGame'));
     var jsonResponse = jsonDecode(response.body);
     String win = jsonResponse['win'];
     return win;
