@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/functions/functions.dart';
+import 'package:flutter_application_2/functions/http_function.dart';
 import 'package:random_avatar/random_avatar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;

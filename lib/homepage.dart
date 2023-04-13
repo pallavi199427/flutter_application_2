@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:flutter/animation.dart';
 import 'package:playing_cards/playing_cards.dart';
 import 'package:reorderables/reorderables.dart';
 import 'package:flutter_application_2/widgets/bottomBar.dart';
@@ -12,49 +13,40 @@ import 'package:flutter_application_2/functions/card_value.dart';
 class MyHomePage extends StatefulWidget {
   @override
   _MyHomePageState createState() => _MyHomePageState();
-  void onCardDiscarded(PlayingCard currentCard) {}
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   // Declare variables at the top of the class
-  late List<PlayingCard> deck;
-  late int currentPlayer;
-  List<PlayingCard> currentCards = [];
-  int selectedCardIndex = -1;
-  String discardButtonName = "Discard";
-  PlayingCard? _discardedCard;
+
+  List<PlayingCard> discardPile = [];
+  AnimationController? _controller;
+  Animation<double>? _animation;
+
+  @override
   void initState() {
     super.initState();
-    fetchGameStateData();
+    fetchData('http://0.0.0.0:8000/InitializeGame');
+
+    // Initialize the animation controller and animation
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 1, end: 0).animate(_controller!);
   }
 
-  void _onDiscardforShowButtonPressed() {
-    print("here");
-    setState(() {
-      discardButtonName = "Discard \nfor show";
-    });
-  }
-
-  void _onChangeButtonPressed() {
-    setState(() {
-      _discardedCard = currentCards.removeAt(selectedCardIndex);
-      selectedCardIndex = -1;
-      discardButtonName = "Discard";
-    });
-    _buildDropZone();
-  }
-
-  void fetchGameStateData() async {
-    final url = Uri.parse('http://127.0.0.1:8000/InitializeGame');
-    var response = await http.get(url);
-
+  void fetchData(String url) async {
+    final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
-      // Parse player 1 cards (Loosing hand)
-      final player1CardsData = jsonData['Loosing Hand'];
-      List<PlayingCard> playingCards =
-          List<PlayingCard>.from(player1CardsData.map((card) {
+      print("first initalizaition");
+
+      // Parse discard pile card
+      final discardData = jsonData['OpenDeck'];
+      List<PlayingCard> discardCards =
+          List<PlayingCard>.from(discardData.map((card) {
         final cardValue = parseCardValue(card['CardValue']);
         final suit = card['Suit'];
         return PlayingCard(
@@ -62,7 +54,8 @@ class _MyHomePageState extends State<MyHomePage> {
           CardValue.values.byName(cardValue),
         );
       }));
-      currentCards = playingCards;
+      discardPile = discardCards;
+      print(discardPile);
 
       setState(() {});
     } else {
@@ -70,149 +63,87 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final card = currentCards.removeAt(oldIndex);
-      currentCards.insert(newIndex, card);
-    });
+  void _playAnimation() {
+    // Start the animation when this function is called
+    _controller!.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    // Clean up the animation controller when the widget is disposed
+    _controller!.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const double cardWidth = 150.0;
     return Scaffold(
       body: Stack(
         children: [
           background(),
-          Player2Widget(),
-          _buildCurrentCard(),
-          _buildDropZone(),
+          _buildDiscardPile(),
         ],
       ),
-      bottomNavigationBar: BottomBar(playerName: 'Player1'),
     );
   }
 
-  Widget _buildCurrentCard() {
-    double topPadding = 0;
-    MediaQueryData? mediaQuery = MediaQuery.of(context);
+  Widget _buildDiscardPile() {
+    final PlayingCard? topCard =
+        discardPile.isNotEmpty ? discardPile.last : null;
 
-    if (mediaQuery != null) {
-      topPadding = mediaQuery.size.height * 0.6; // 50% of the screen height
-    }
-
-    return Container(
-      padding: EdgeInsets.only(
-        top: topPadding,
-      ),
-      child: ReorderableWrap(
-        // ignore: sort_child_properties_last
-        needsLongPressDraggable: false,
-
-        // ignore: sort_child_properties_last
-        children: [
-          for (int i = 0; i < currentCards.length; i++)
+    return Positioned(
+      bottom: 100, // fixed value for the bottom position
+      left: 300, // fixed value for the left position
+      child: SizedBox(
+        height: 200, // or some other fixed height
+        width: 150, // fixed width of the discard pile
+        child: Stack(
+          children: [
+            AnimatedPositioned(
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              bottom: topCard != null ? 10 : 0,
+              left: topCard != null ? 10 : 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(2),
+                  border: Border.all(color: Colors.blue, width: 2),
+                ),
+                child: topCard != null
+                    ? PlayingCardView(
+                        card: topCard,
+                        showBack: false,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2),
+                          side: const BorderSide(color: Colors.black, width: 1),
+                        ),
+                      )
+                    : Container(),
+              ),
+            ),
             GestureDetector(
-              key: Key(currentCards[i].toString()),
               onTap: () {
                 setState(() {
-                  selectedCardIndex = i;
+                  discardPile.removeLast();
                 });
+
+                _animateDiscardPile();
               },
-              child: SizedBox(
-                height: 125,
-                child: Stack(
-                  children: [
-                    PlayingCardView(
-                      card: currentCards[i],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        side: const BorderSide(color: Colors.black, width: 1),
-                      ),
-                    ),
-                    if (selectedCardIndex == i)
-                      Positioned(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (discardButtonName == 'Discard') {
-                              // perform discard action
-                            } else {
-                              // perform default action
-                              setState(() {
-                                _onChangeButtonPressed();
-                              });
-                            }
-                          },
-                          child: Text(discardButtonName),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
             ),
-        ],
-        onReorder: _onReorder,
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDropZone() {
-    return Stack(
-      children: [
-        if (_discardedCard == null) // only render if _discardedCard is null
-          Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.46,
-            left: MediaQuery.of(context).size.width * 0.25,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.15,
-              width: MediaQuery.of(context).size.width * 0.10,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Color.fromRGBO(0, 0, 0, 1),
-                  width: 2.0,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color.fromARGB(15, 189, 142, 80),
-                    blurRadius: 10.0,
-                    spreadRadius: 1.0,
-                    offset: Offset(2.0, 2.0),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    _onDiscardforShowButtonPressed();
-                  },
-                  child: Text(
-                    'Discard for show',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        if (_discardedCard != null) // only render if _discardedCard is not null
-          Positioned(
-            bottom: MediaQuery.of(context).size.height * 0.46,
-            left: MediaQuery.of(context).size.width * 0.25,
-            child: SizedBox(
-              height: 125, // set height of the SizedBox to 125
-              child: PlayingCardView(
-                card: _discardedCard!,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: Colors.black.withOpacity(0.3)),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+  void _animateDiscardPile() async {
+    await Future.delayed(Duration(milliseconds: 200));
+    setState(() {});
+
+    await Future.delayed(Duration(milliseconds: 200));
+
+    setState(() {
+      discardPile.isNotEmpty ? discardPile.last : null;
+    });
   }
 }

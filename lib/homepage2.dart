@@ -7,7 +7,6 @@ import 'package:reorderables/reorderables.dart';
 import 'package:flutter_application_2/widgets/bottomBar.dart';
 import 'package:flutter_application_2/widgets/player2widget.dart';
 import 'package:flutter_application_2/widgets/background.dart';
-import 'package:flutter_application_2/functions/card_value.dart';
 
 class MyHomePage2 extends StatefulWidget {
   @override
@@ -31,13 +30,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
-      print("first initalizaition");
-
       // Parse discard pile card
       final discardData = jsonData['OpenDeck'];
       List<PlayingCard> discardCards =
           List<PlayingCard>.from(discardData.map((card) {
-        final cardValue = parseCardValue(card['CardValue']);
+        final cardValue = (card['CardValue']);
         final suit = card['Suit'];
         return PlayingCard(
           Suit.values.byName(suit),
@@ -45,12 +42,12 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       discardPile = discardCards;
-      print(discardPile);
+      setState(() {});
 
       final jokerPile = jsonData['Joker'];
       List<PlayingCard> jokerCard =
           List<PlayingCard>.from(jokerPile.map((card) {
-        final cardValue = parseCardValue(card['CardValue']);
+        final cardValue = (card['CardValue']);
         final suit = card['Suit'];
         return PlayingCard(
           Suit.values.byName(suit),
@@ -62,7 +59,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final player1CardsData = jsonData['Loosing Hand'];
       List<PlayingCard> playingCards =
           List<PlayingCard>.from(player1CardsData.map((card) {
-        final cardValue = parseCardValue(card['CardValue']);
+        final cardValue = (card['CardValue']);
         final suit = card['Suit'];
         return PlayingCard(
           Suit.values.byName(suit),
@@ -71,16 +68,18 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       }));
       currentCards = playingCards;
 
-      // Parse remaining cards (Closed deck)
       final remainingCardsData = jsonData['ClosedDeck'];
-      remainingCards = List<PlayingCard>.from(remainingCardsData.map((card) {
-        final cardValue = parseCardValue(card['CardValue']);
+      List<PlayingCard> ClosedDeck =
+          List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = (card['CardValue']);
         final suit = card['Suit'];
         return PlayingCard(
           Suit.values.byName(suit),
           CardValue.values.byName(cardValue),
         );
       }));
+      remainingCards = ClosedDeck;
+
       setState(() {});
     } else {
       throw Exception('Failed to load game state');
@@ -93,25 +92,39 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   void PickFromClosedDeck() async {
+    print("closeddeck");
     fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
   }
 
   void PickFromOpenDeck() async {
+    print("opendeck");
     fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
   }
 
-  void DiscardCard() async {
-    fetchData('http://0.0.0.0:8000/DiscardCard');
+  Future<void> _discardCardHttpCall(PlayingCard card) async {
+    const url = 'http://0.0.0.0:8000/DiscardCard';
+    final cardJson = jsonEncode({
+      'Suit': card.suit.name.toLowerCase(),
+      'CardValue': card.value.name.toLowerCase(),
+    });
+
+    try {
+      final response = await http.post(Uri.parse(url),
+          headers: {"Content-Type": "application/json"}, body: cardJson);
+      final responseData = jsonDecode(response.body);
+      setState(() {
+        print(responseData);
+
+        setState(() {});
+      });
+    } catch (error) {
+      print(error);
+    }
   }
 
   void fetchWinner() async {
     fetchData('http://0.0.0.0:8000/WinGame');
-  }
-
-  void addToDiscardPile(PlayingCard card) {
-    setState(() {
-      discardPile.add(card);
-    });
+    _discardedCard = currentCards.removeAt(selectedCardIndex);
   }
 
   void _onDiscardforShowButtonPressed() {
@@ -129,16 +142,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     _buildDropZone();
   }
 
-  void addFromDiscardPile() {
-    if (discardPile.isNotEmpty) {
-      PlayingCard topCard = discardPile.last;
-      discardPile.removeLast();
-      setState(() {
-        currentCards.add(topCard);
-      });
-    }
-  }
-
   void _showDiscardCardSnackbar() {
     final snackbar = SnackBar(
       content: Text('Discard a card first to continue'),
@@ -154,35 +157,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final card = currentCards.removeAt(oldIndex);
       currentCards.insert(newIndex, card);
     });
-  }
-
-  void _onDiscardButtonPressed(BuildContext context) async {
-    // perform the discard operation
-
-    // Make HTTP GET request to retrieve pile state
-    final url = Uri.parse('http://0.0.0.0:5000/pile');
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      final jsonData = jsonDecode(response.body);
-
-      // Check if Player2 picked a card from the closed pile
-      final player2Pile = jsonData['Pile'];
-      if (player2Pile == 'Closed') {
-        // Show the alert dialog box to notify player 1
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            content: Text('Player 2 picked a card from the $player2Pile pile'),
-          ),
-        );
-        await Future.delayed(Duration(seconds: 2));
-        Navigator.pop(context); // Dismiss the alert dialog box
-      }
-    } else {
-      throw Exception('Failed to load pile state');
-    }
   }
 
   @override
@@ -289,8 +263,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   Widget _buildDiscardPile() {
     final PlayingCard? topCard =
-        discardPile.isNotEmpty ? discardPile.last : null;
-
+        discardPile.isNotEmpty ? discardPile.first : null;
+    print(
+        "Top card in discard pile: ${topCard?.suit.name} ${topCard?.value.name}");
     return Positioned(
       bottom: MediaQuery.of(context).size.height * 0.44,
       left: MediaQuery.of(context).size.width * 0.59,
@@ -370,14 +345,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                     if (selectedCardIndex == i)
                       Positioned(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             if (discardButtonName == 'Discard') {
-                              // perform discard action
-                            } else if (discardButtonName == 'Change') {
-                              // perform second discard action
-                              setState(() {
-                                // perform second discard action
-                              });
+                              final discardedCard1 =
+                                  currentCards.removeAt(selectedCardIndex);
+                              await _discardCardHttpCall(discardedCard1);
                             } else {
                               // perform default action
                               setState(() {
@@ -406,13 +378,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             bottom: MediaQuery.of(context).size.height * 0.46,
             left: MediaQuery.of(context).size.width * 0.25,
             child: Container(
-              height: MediaQuery.of(context).size.height * 0.15,
+              height: MediaQuery.of(context).size.height * 0.17,
               width: MediaQuery.of(context).size.width * 0.10,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Color.fromRGBO(0, 0, 0, 1),
-                  width: 2.0,
+                  width: 1.0,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -425,14 +397,18 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               ),
               child: Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    _onDiscardforShowButtonPressed();
-                  },
-                  child: Text(
-                    'Discard for show',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                    onPressed: () {
+                      _onDiscardforShowButtonPressed();
+                    },
+                    child: Text(
+                      'Discard for Show',
+                      textAlign: TextAlign.center,
+                    ),
+                    style: ButtonStyle(
+                      backgroundColor:
+                          MaterialStateProperty.all<Color>(Colors.black),
+                    ) // set the background color to blue
+                    ),
               ),
             ),
           ),
