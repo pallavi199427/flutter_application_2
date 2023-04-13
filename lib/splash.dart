@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/homepage2.dart';
 
 import 'homepage.dart';
 
@@ -32,7 +33,7 @@ class _SplashState extends State<Splash> {
             context,
             PageRouteBuilder(
               transitionDuration: Duration(milliseconds: 500),
-              pageBuilder: (_, __, ___) => MyHomePage(),
+              pageBuilder: (_, __, ___) => MyHomePage2(),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
                 return FadeTransition(

@@ -113,7 +113,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           headers: {"Content-Type": "application/json"}, body: cardJson);
       final responseData = jsonDecode(response.body);
       setState(() {
-        print(responseData);
+        fetchData('http://0.0.0.0:8000/InitializeGame');
 
         setState(() {});
       });
@@ -349,7 +349,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                             if (discardButtonName == 'Discard') {
                               final discardedCard1 =
                                   currentCards.removeAt(selectedCardIndex);
-                              await _discardCardHttpCall(discardedCard1);
+                              setState(() {});
+                              _discardCardHttpCall(discardedCard1);
                             } else {
                               // perform default action
                               setState(() {
