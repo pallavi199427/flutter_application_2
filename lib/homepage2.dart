@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
@@ -25,6 +26,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   int selectedCardIndex = -1;
   String discardButtonName = "Discard";
   PlayingCard? _discardedCard;
+
   void fetchData(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -88,12 +90,70 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
     fetchData('http://0.0.0.0:8000/InitializeGame');
   }
 
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+    super.dispose();
+  }
+
+  fetchOpponentMove() async {
+    print("opponent move");
+    final response =
+        await http.get(Uri.parse('http://0.0.0.0:8000/FetchOpponentMove'));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      final opponentMoveData = jsonData['OpponentMove'][0];
+      final Pile = opponentMoveData['Pile'];
+      final Show = opponentMoveData['Show'] == 'True';
+      print(Pile);
+
+      if (Show) {
+        // show the "submit a card for show" alert box
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Player 2 submitted a card for show'),
+              content: Text('Please discard a card and submit your cards too.'),
+            );
+          },
+        );
+      } else {
+        // show the "picked from pile" alert box
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Player 2 picked from Pile $Pile'),
+            );
+          },
+        );
+      }
+
+      // update the state of the application with the fetched data
+      setState(() {
+        // do something with the Pile and Show variables
+      });
+
+      // wait for 3 seconds before automatically dismissing the alert box
+      await Future.delayed(Duration(seconds: 3));
+
+      // dismiss the alert box
+      Navigator.of(context).pop();
+    } else {
+      throw Exception('Failed to load game state');
+    }
+  }
+
   void PickFromClosedDeck() async {
-    print("closeddeck");
     fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
+    fetchOpponentMove();
   }
 
   void PickFromOpenDeck() async {
@@ -120,11 +180,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     } catch (error) {
       print(error);
     }
-  }
-
-  void fetchWinner() async {
-    fetchData('http://0.0.0.0:8000/WinGame');
-    _discardedCard = currentCards.removeAt(selectedCardIndex);
   }
 
   void _onDiscardforShowButtonPressed() {
@@ -162,18 +217,20 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   @override
   Widget build(BuildContext context) {
     const double cardWidth = 150.0;
-    return Scaffold(
-      body: Stack(
-        children: [
-          background(),
-          Player2Widget(),
-          _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
-          _buildCurrentCard(),
-          _buildDiscardPile(),
-          _buildDropZone(),
-        ],
+    return SafeArea(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            background(),
+            Player2Widget(),
+            _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
+            _buildCurrentCard(),
+            _buildDiscardPile(),
+            _buildDropZone(),
+          ],
+        ),
+        bottomNavigationBar: BottomBar(playerName: 'Player1'),
       ),
-      bottomNavigationBar: BottomBar(playerName: 'Player1'),
     );
   }
 
