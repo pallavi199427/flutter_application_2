@@ -97,9 +97,61 @@ flutter:
 
   assets:
     - assets/background.jpg
-    - assets/avatar.png
     - assets/cards.png   
-    - assets/backcard.png
+    - assets/1_spades.png   
+    - assets/2_spades.png
+    - assets/3_spades.png
+    - assets/4_spades.png
+    - assets/5_spades.png   
+    - assets/6_spades.png
+    - assets/7_spades.png
+    - assets/8_spades.png
+    - assets/9_spades.png   
+    - assets/10_spades.png
+    - assets/11_spades.png
+    - assets/12_spades.png
+    - assets/13_spades.png
+    - assets/1_hearts.png   
+    - assets/2_hearts.png
+    - assets/3_hearts.png
+    - assets/4_hearts.png
+    - assets/5_hearts.png   
+    - assets/6_hearts.png
+    - assets/7_hearts.png
+    - assets/8_hearts.png
+    - assets/9_hearts.png   
+    - assets/10_hearts.png
+    - assets/11_hearts.png
+    - assets/12_hearts.png
+    - assets/13_hearts.png
+
+    - assets/1_clubs.png   
+    - assets/2_clubs.png
+    - assets/3_clubs.png
+    - assets/4_clubs.png
+    - assets/5_clubs.png   
+    - assets/6_clubs.png
+    - assets/7_clubs.png
+    - assets/8_clubs.png
+    - assets/9_clubs.png   
+    - assets/10_clubs.png
+    - assets/11_clubs.png
+    - assets/12_clubs.png
+    - assets/13_clubs.png
+    - assets/1_diamonds.png   
+    - assets/2_diamonds.png
+    - assets/3_diamonds.png
+    - assets/4_diamonds.png
+    - assets/5_diamonds.png   
+    - assets/6_diamonds.png
+    - assets/7_diamonds.png
+    - assets/8_diamonds.png
+    - assets/9_diamonds.png   
+    - assets/10_diamonds.png
+    - assets/11_diamonds.png
+    - assets/12_diamonds.png
+    - assets/13_diamonds.png
+
 
  
 

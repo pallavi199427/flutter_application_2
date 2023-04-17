@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_2/homepage2.dart';
-import 'package:flutter_application_2/widgets/leaderboard.dart';
+import 'package:flutter_application_2/homepage.dart';
+import 'package:flutter_application_2/splash.dart';
+import 'package:flutter_application_2/widgets/cardpickup.dart';
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized(); // Add this line
-  SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft])
-      .then((_) {
-    runApp(Rummy());
-  });
+Future<void> main() async {
+  runApp(Rummy());
 }
 
 class Rummy extends StatelessWidget {
@@ -16,10 +14,7 @@ class Rummy extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Rummy Game',
-      initialRoute: '/',
-      routes: {
-        '/': (context) => MyHomePage2(),
-      },
+      home: MyHomePage2(),
     );
   }
 }

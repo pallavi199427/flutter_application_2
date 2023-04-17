@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_2/functions/functions.dart';
-import 'package:flutter_application_2/functions/http_function.dart';
 import 'package:random_avatar/random_avatar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_application_2/homepage2.dart';
-import 'package:flutter_application_2/widgets/leaderboard.dart';
+import 'package:flutter_application_2/widgets/timer.dart';
 
 class BottomBar extends StatelessWidget {
   const BottomBar({
@@ -135,6 +132,12 @@ class BottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          CountdownTimerWidget(
+            durationInSeconds: 30,
+            onTimerComplete: () {
+              // Do something when the countdown is complete
+            },
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
