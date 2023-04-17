@@ -17,11 +17,10 @@ class CountdownTimerWidget extends StatefulWidget {
     required this.onTimerComplete,
     this.ringColor = Colors.grey,
     this.fillColor = Colors.blue,
-    this.strokeWidth = 10.0,
+    this.strokeWidth = 2.0,
     this.textStyle = const TextStyle(
       fontSize: 22.0,
       color: Colors.black,
-      fontWeight: FontWeight.bold,
     ),
     this.isReverse = true,
     this.isReverseAnimation = true,

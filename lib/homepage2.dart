@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
@@ -17,8 +16,23 @@ class MyHomePage2 extends StatefulWidget {
 }
 
 class _MyHomePageState2 extends State<MyHomePage2> {
-// This style object overrides the styles for spades.
-  bool isTimerRunning = true;
+  bool isPlayer2Turn = false;
+  bool _showBottomBarTimer = true;
+  bool _showPlayer2Timer = false;
+  void _toggleBottomBarTimer() {
+    setState(() {
+      _showBottomBarTimer = !_showBottomBarTimer;
+    });
+  }
+
+  void _togglePlayer2Timer() {
+    setState(() {
+      _showPlayer2Timer = !_showPlayer2Timer;
+      isPlayer2Turn =
+          !isPlayer2Turn; // Set isPlayer2Turn based on _showPlayer2Timer
+    });
+  }
+
   late List<PlayingCard> deck;
   late int currentPlayer;
   List<PlayingCard> discardPile = [];
@@ -95,7 +109,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     fetchData('http://0.0.0.0:8000/InitializeGame');
   }
 
-  @override
   fetchOpponentMove() async {
     final response =
         await http.get(Uri.parse('http://0.0.0.0:8000/FetchOpponentMove'));
@@ -105,7 +118,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final opponentMoveData = jsonData['OpponentMove'][0];
       final Pile = opponentMoveData['Pile'];
       final Show = opponentMoveData['Show'] == 'True';
-      print(Pile);
 
       if (Show) {
         // show the "submit a card for show" alert box
@@ -168,7 +180,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final responseData = jsonDecode(response.body);
       setState(() {
         fetchData('http://0.0.0.0:8000/InitializeGame');
-        isTimerRunning = false; // Turn off the timer.
+        _toggleBottomBarTimer();
+        _togglePlayer2Timer();
       });
     } catch (error) {
       print(error);
@@ -188,13 +201,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       discardButtonName = "Discard";
     });
     _buildDropZone();
-  }
-
-  void _showDiscardCardSnackbar() {
-    final snackbar = SnackBar(
-      content: Text('Discard a card first to continue'),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackbar);
   }
 
   void _showMessageDialog(BuildContext context, String message) {
@@ -272,14 +278,29 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         body: Stack(
           children: [
             background(),
-            Player2Widget(),
+            Player2Widget(
+              showTimer: _showPlayer2Timer,
+              toggleTimerVisibility: _togglePlayer2Timer,
+              onComplete: () {
+                _togglePlayer2Timer();
+                _toggleBottomBarTimer();
+              },
+            ),
             _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
             _buildCurrentCard(),
             _buildDiscardPile(),
             _buildDropZone(),
           ],
         ),
-        bottomNavigationBar: BottomBar(playerName: 'Player1'),
+        bottomNavigationBar: BottomBar(
+          playerName: 'Player1',
+          showTimer: _showBottomBarTimer,
+          toggleTimerVisibility: _toggleBottomBarTimer,
+          onComplete: () {
+            _togglePlayer2Timer();
+            _toggleBottomBarTimer();
+          }, // <-- Pass it here
+        ),
       ),
     );
   }
@@ -350,7 +371,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         width: MediaQuery.of(context).size.width * 0.09,
         child: GestureDetector(
           onTap: () {
-            if (currentCards.length == 14) {
+            if (isPlayer2Turn) {
+              _showMessageDialog(context, "Please wait for Player 2's turn");
+            } else if (currentCards.length == 14) {
               _showMessageDialog(context, "Please select a card to discard");
             } else {
               PickFromClosedDeck();
@@ -396,7 +419,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             ),
             GestureDetector(
               onTap: () {
-                if (currentCards.length == 14) {
+                if (isPlayer2Turn) {
+                  _showMessageDialog(
+                      context, "Please wait for Player 2's turn");
+                } else if (currentCards.length == 14) {
                   _showMessageDialog(
                       context, "Please select a card to discard");
                 } else {
