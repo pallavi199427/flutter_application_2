@@ -19,6 +19,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
+  bool isShowInitated = false;
+
   void _toggleBottomBarTimer() {
     setState(() {
       _showBottomBarTimer = !_showBottomBarTimer;
@@ -33,6 +35,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     });
   }
 
+  bool isDisabled =
+      true; // Set this variable to true to disable the widgets, false to enable them
   late List<PlayingCard> deck;
   late int currentPlayer;
   List<PlayingCard> discardPile = [];
@@ -114,8 +118,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         await http.get(Uri.parse('http://0.0.0.0:8000/FetchOpponentMove'));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
-
-      final opponentMoveData = jsonData['OpponentMove'][0];
+      final opponentMoveData = jsonData['OpponentMove'];
       final Pile = opponentMoveData['Pile'];
       final Show = opponentMoveData['Show'] == 'True';
 
@@ -131,27 +134,26 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           },
         );
       } else {
-        // show the "picked from pile" alert box
+        _togglePlayer2Timer();
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Player 2 picked from Pile $Pile'),
+              title: Text('Player 2 picked from Pile' + Pile),
             );
           },
         );
       }
 
       // update the state of the application with the fetched data
-      setState(() {
-        // do something with the Pile and Show variables
-      });
+      setState(() {});
 
       // wait for 3 seconds before automatically dismissing the alert box
       await Future.delayed(Duration(seconds: 3));
 
       // dismiss the alert box
       Navigator.of(context).pop();
+      _toggleBottomBarTimer();
     } else {
       throw Exception('Failed to load game state');
     }
@@ -159,11 +161,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void PickFromClosedDeck() async {
     fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
-    //fetchOpponentMove();
+    //_toggleBottomBarTimer();
+    // fetchOpponentMove();
   }
 
   void PickFromOpenDeck() async {
     fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
+    //_toggleBottomBarTimer();
     //fetchOpponentMove();
   }
 
@@ -179,9 +183,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           headers: {"Content-Type": "application/json"}, body: cardJson);
       final responseData = jsonDecode(response.body);
       setState(() {
-        fetchData('http://0.0.0.0:8000/InitializeGame');
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
+        fetchData('http://0.0.0.0:8000/InitializeGame');
+
+        fetchOpponentMove();
       });
     } catch (error) {
       print(error);
@@ -199,6 +205,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       _discardedCard = currentCards.removeAt(selectedCardIndex);
       selectedCardIndex = -1;
       discardButtonName = "Discard";
+      isShowInitated = true;
     });
     _buildDropZone();
   }
@@ -208,11 +215,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Color.fromARGB(255, 3, 36, 85),
+          backgroundColor: Color.fromARGB(255, 7, 61, 141),
           contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 0),
           title: Center(
             child: Text(
-              'Discard Card',
+              ' ',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
@@ -236,7 +243,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                   width: 70,
                   decoration: BoxDecoration(
                     color: Color.fromARGB(255, 9, 132, 13),
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                   child: Center(
                     child: Text(
@@ -297,8 +304,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           showTimer: _showBottomBarTimer,
           toggleTimerVisibility: _toggleBottomBarTimer,
           onComplete: () {
-            _togglePlayer2Timer();
             _toggleBottomBarTimer();
+
+            _togglePlayer2Timer();
           }, // <-- Pass it here
         ),
       ),
@@ -326,7 +334,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   Widget _buildJoker(List<PlayingCard> joker) {
     final jokerCard = joker.isNotEmpty ? joker.first : null;
-
     return jokerCard != null
         ? Positioned(
             bottom: MediaQuery.of(context).size.height * 0.42,
@@ -392,7 +399,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     );
   }
 
-  Widget _buildDiscardPile() {
+  Widget _buildDiscardPile({bool show = true}) {
     final PlayingCard? topCard =
         discardPile.isNotEmpty ? discardPile.first : null;
 
@@ -416,19 +423,28 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       ),
                     )
                   : Container(),
+              decoration: BoxDecoration(
+                color: show ? Colors.grey[300] : null,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             GestureDetector(
-              onTap: () {
-                if (isPlayer2Turn) {
-                  _showMessageDialog(
-                      context, "Please wait for Player 2's turn");
-                } else if (currentCards.length == 14) {
-                  _showMessageDialog(
-                      context, "Please select a card to discard");
-                } else {
-                  PickFromOpenDeck();
-                }
-              },
+              onTap: show
+                  ? null
+                  : () {
+                      if (isShowInitated) {
+                        _showMessageDialog(
+                            context, "Please arrange and submit ur card");
+                      } else if (isPlayer2Turn) {
+                        _showMessageDialog(
+                            context, "Please wait for Player 2's turn");
+                      } else if (currentCards.length == 14) {
+                        _showMessageDialog(
+                            context, "Please select a card to discard");
+                      } else {
+                        PickFromOpenDeck();
+                      }
+                    },
             ),
           ],
         ),
@@ -478,7 +494,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       Positioned(
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (discardButtonName == 'Discard') {
+                            if (isPlayer2Turn) {
+                              _showMessageDialog(
+                                  context, "Please wait for Player 2's turn");
+                            } else if (discardButtonName == 'Discard') {
                               final discardedCard1 =
                                   currentCards.removeAt(selectedCardIndex);
                               setState(() {});

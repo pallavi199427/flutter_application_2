@@ -56,7 +56,7 @@ class Player2Widget extends StatelessWidget {
                   fontSize: 22.0,
                   color: Colors.white, // change this to the desired color
                 ),
-                durationInSeconds: 40,
+                durationInSeconds: 30,
                 onTimerComplete: () {
                   onComplete();
                 },
