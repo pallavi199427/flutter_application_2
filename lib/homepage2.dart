@@ -64,7 +64,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       discardPile = discardCards;
-      setState(() {});
 
       final jokerPile = jsonData['Joker'];
       List<PlayingCard> jokerCard =
@@ -77,6 +76,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       joker = jokerCard;
+      print(jokerCard.toString());
+      print(jokerPile.toString());
+
       // Parse player 1 cards (Loosing hand)
       final player1CardsData = jsonData['Loosing Hand'];
       List<PlayingCard> playingCards =
@@ -134,7 +136,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           );
         }));
         remainingCards = ClosedDeck;
-        print(remainingCardsData.toString());
 
         // show the "submit a card for show" alert box
         showDialog(
@@ -152,7 +153,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Player 2 picked from Pile' + Pile),
+              title: Text('Player 2 picked from' + Pile + 'Pile'),
             );
           },
         );
@@ -176,13 +177,15 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
     //_toggleBottomBarTimer();
     // fetchOpponentMove();
+    setState(() {});
   }
 
   void PickFromOpenDeck() async {
-    print("pickfromOpendeck");
     fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
     //_toggleBottomBarTimer();
     //fetchOpponentMove();
+
+    setState(() {});
   }
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
@@ -307,7 +310,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 _toggleBottomBarTimer();
               },
             ),
-            _buildJokerAndRemainingCardStack(joker, remainingCards, cardWidth),
+            _buildJoker(joker),
+            buildRemainingCards(),
             _buildCurrentCard(),
             _buildDiscardPile(),
             _buildDropZone(),
@@ -324,25 +328,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           }, // <-- Pass it here
         ),
       ),
-    );
-  }
-
-  Widget _buildJokerAndRemainingCardStack(List<PlayingCard> joker,
-      List<PlayingCard> remainingCards, double cardWidth) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        _buildJoker(joker),
-        ...List<PlayingCard>.from(remainingCards.reversed)
-            .asMap()
-            .map((index, card) => MapEntry(
-                  index,
-                  _buildRemainingCard(
-                      card, cardWidth, remainingCards.length, index),
-                ))
-            .values
-            .toList(),
-      ],
     );
   }
 
@@ -378,18 +363,28 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         : const SizedBox();
   }
 
-  Widget _buildRemainingCard(
-    PlayingCard card,
-    double cardWidth,
-    int remainingCardsCount,
-    int index,
-  ) {
+  Widget buildRemainingCards() {
+    final cardWidth = 100.0; // Replace this with the desired width of the cards
+
+    // Check if the remainingCards list is null or empty
+    if (remainingCards == null || remainingCards.isEmpty) {
+      // Show a placeholder widget while the actual list is loading
+      return SizedBox(
+        height: MediaQuery.of(context).size.height * 0.20,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // If the remainingCards list is not null or empty, show the top card
+    final topCard = remainingCards.last;
     return Positioned(
       bottom: MediaQuery.of(context).size.height * 0.43,
       left: MediaQuery.of(context).size.width * 0.46,
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.20,
-        width: MediaQuery.of(context).size.width * 0.09,
+        width: cardWidth,
         child: GestureDetector(
           onTap: () {
             if (isPlayer2Turn) {
@@ -401,8 +396,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             }
           },
           child: PlayingCardView(
-            card: card,
-            showBack: false,
+            card: topCard,
+            showBack: true,
             style: myCardStyles,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(2),
@@ -416,7 +411,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   Widget _buildDiscardPile({bool show = true}) {
     final PlayingCard? topCard =
         discardPile.isNotEmpty ? discardPile.first : null;
-
     return Positioned(
       bottom: MediaQuery.of(context).size.height * 0.43,
       left: MediaQuery.of(context).size.width * 0.59,
@@ -451,7 +445,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                   _showMessageDialog(
                       context, "Please select a card to discard");
                 } else {
-                  PickFromClosedDeck();
+                  currentCards.add(topCard!);
+
+                  discardPile.removeAt(0);
+
+                  PickFromOpenDeck();
                 }
               },
             ),
@@ -468,7 +466,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     if (mediaQuery != null) {
       topPadding = mediaQuery.size.height * 0.55; // 50% of the screen height
     }
-
     return Container(
       padding: EdgeInsets.only(
         top: topPadding,
@@ -476,7 +473,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       child: ReorderableWrap(
         // ignore: sort_child_properties_last
         needsLongPressDraggable: false,
-
+        onReorderStarted: (index) => 1,
         // ignore: sort_child_properties_last
         children: [
           for (int i = 0; i < currentCards.length; i++)
@@ -509,7 +506,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                             } else if (discardButtonName == 'Discard') {
                               final discardedCard1 =
                                   currentCards.removeAt(selectedCardIndex);
-                              setState(() {});
+
+                              setState(() {
+                                discardPile.add(discardedCard1);
+                              });
                               _discardCardHttpCall(discardedCard1);
                             } else {
                               // perform default action
