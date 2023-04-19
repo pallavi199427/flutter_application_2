@@ -123,6 +123,19 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final Show = opponentMoveData['Show'] == 'True';
 
       if (Show) {
+        final remainingCardsData = jsonData['Winning Hand'];
+        List<PlayingCard> ClosedDeck =
+            List<PlayingCard>.from(remainingCardsData.map((card) {
+          final cardValue = (card['CardValue']);
+          final suit = card['Suit'];
+          return PlayingCard(
+            Suit.values.byName(suit),
+            CardValue.values.byName(cardValue),
+          );
+        }));
+        remainingCards = ClosedDeck;
+        print(remainingCardsData.toString());
+
         // show the "submit a card for show" alert box
         showDialog(
           context: context,
@@ -166,6 +179,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   void PickFromOpenDeck() async {
+    print("pickfromOpendeck");
     fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
     //_toggleBottomBarTimer();
     //fetchOpponentMove();
@@ -429,22 +443,17 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               ),
             ),
             GestureDetector(
-              onTap: show
-                  ? null
-                  : () {
-                      if (isShowInitated) {
-                        _showMessageDialog(
-                            context, "Please arrange and submit ur card");
-                      } else if (isPlayer2Turn) {
-                        _showMessageDialog(
-                            context, "Please wait for Player 2's turn");
-                      } else if (currentCards.length == 14) {
-                        _showMessageDialog(
-                            context, "Please select a card to discard");
-                      } else {
-                        PickFromOpenDeck();
-                      }
-                    },
+              onTap: () {
+                if (isPlayer2Turn) {
+                  _showMessageDialog(
+                      context, "Please wait for Player 2's turn");
+                } else if (currentCards.length == 14) {
+                  _showMessageDialog(
+                      context, "Please select a card to discard");
+                } else {
+                  PickFromClosedDeck();
+                }
+              },
             ),
           ],
         ),
