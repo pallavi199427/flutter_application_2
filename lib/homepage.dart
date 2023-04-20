@@ -311,16 +311,6 @@ class _MyHomePageState extends State<MyHomePage> {
             _buildDropZone(),
           ],
         ),
-        bottomNavigationBar: BottomBar(
-          playerName: 'Player1',
-          showTimer: _showBottomBarTimer,
-          toggleTimerVisibility: _toggleBottomBarTimer,
-          onComplete: () {
-            _toggleBottomBarTimer();
-
-            _togglePlayer2Timer();
-          }, // <-- Pass it here
-        ),
       ),
     );
   }
@@ -374,17 +364,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildCurrentCard() {
-    double topPadding = 0;
-    MediaQueryData? mediaQuery = MediaQuery.of(context);
-
-    if (mediaQuery != null) {
-      topPadding = mediaQuery.size.height * 0.55; // 50% of the screen height
-    }
-
     return Container(
-      padding: EdgeInsets.only(
-        top: topPadding,
-      ),
       child: ReorderableWrap(
         // ignore: sort_child_properties_last
         needsLongPressDraggable: false,
@@ -400,14 +380,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.19,
                 child: Stack(
                   children: [
                     PlayingCardView(
                       card: currentCards[i],
-                      style: myCardStyles,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(2),
                         side: const BorderSide(color: Colors.black, width: 1),
                       ),
                     ),

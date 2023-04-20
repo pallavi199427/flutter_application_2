@@ -20,14 +20,12 @@ class Player2Widget extends StatelessWidget {
     double horizontalPadding = MediaQuery.of(context).size.width * 0.01;
 
     return Container(
-      height: 50, // Set the height of the row
+      height: 70, // Set the height of the row
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            height: MediaQuery.of(context).size.height * 0.20,
-            width: MediaQuery.of(context).size.width *
-                0.09, // Set the width of the avatar and timer container
+            // Set the width of the avatar and timer container
             child: Row(
               children: [
                 RandomAvatar(
@@ -35,31 +33,35 @@ class Player2Widget extends StatelessWidget {
                   height: avatarSize,
                   width: avatarSize,
                 ),
-                SizedBox(width: horizontalPadding),
+                SizedBox(width: 10),
                 Text(
                   'Player 2',
                   style: TextStyle(
                     fontSize: MediaQuery.of(context).size.width * 0.012,
-                    color: Colors.white,
+                    color: Color.fromARGB(255, 3, 38, 66),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
           if (showTimer)
-            Container(
-              height: avatarSize, // Set the height of the timer container
-              width: avatarSize, // Set the width of the timer container
-              child: CountdownTimerWidget(
-                ringColor: Colors.white,
-                textStyle: TextStyle(
-                  fontSize: 22.0,
-                  color: Colors.white, // change this to the desired color
+            Padding(
+              padding: const EdgeInsets.only(left: 10.0),
+              child: Container(
+                height: MediaQuery.of(context).size.width * 0.05,
+                width: MediaQuery.of(context).size.width * 0.05,
+                child: CountdownTimerWidget(
+                  ringColor: Colors.white,
+                  textStyle: TextStyle(
+                    fontSize: 25.0,
+                    color: Colors.white,
+                  ),
+                  durationInSeconds: 30,
+                  onTimerComplete: () {
+                    onComplete();
+                  },
                 ),
-                durationInSeconds: 30,
-                onTimerComplete: () {
-                  onComplete();
-                },
               ),
             ),
         ],

@@ -16,6 +16,7 @@ class MyHomePage2 extends StatefulWidget {
 }
 
 class _MyHomePageState2 extends State<MyHomePage2> {
+  String ip = '0.0.0.0';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
@@ -112,12 +113,12 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void initState() {
     super.initState();
-    fetchData('http://0.0.0.0:8000/InitializeGame');
+    fetchData('http://$ip:8000/InitializeGame');
   }
 
   fetchOpponentMove() async {
     final response =
-        await http.get(Uri.parse('http://0.0.0.0:8000/FetchOpponentMove'));
+        await http.get(Uri.parse('http://$ip:8000/FetchOpponentMove'));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
       final opponentMoveData = jsonData['OpponentMove'];
@@ -157,6 +158,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             );
           },
         );
+        fetchData('http://$ip:8000/InitializeGame');
       }
 
       // update the state of the application with the fetched data
@@ -174,14 +176,14 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   void PickFromClosedDeck() async {
-    fetchData('http://0.0.0.0:8000/PickFromClosedDeck');
+    fetchData('http://$ip:8000/PickFromClosedDeck');
     //_toggleBottomBarTimer();
     // fetchOpponentMove();
     setState(() {});
   }
 
   void PickFromOpenDeck() async {
-    fetchData('http://0.0.0.0:8000/PickFromOpenDeck');
+    fetchData('http://$ip:8000/PickFromOpenDeck');
     //_toggleBottomBarTimer();
     //fetchOpponentMove();
 
@@ -189,7 +191,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
-    const url = 'http://0.0.0.0:8000/DiscardCard';
+    final url = 'http://$ip:8000/DiscardCard';
     final cardJson = jsonEncode({
       'Suit': card.suit.name.toLowerCase(),
       'CardValue': card.value.name.toLowerCase(),
@@ -202,7 +204,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       setState(() {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
-        fetchData('http://0.0.0.0:8000/InitializeGame');
+        fetchData('http://$ip:8000/InitializeGame');
 
         fetchOpponentMove();
       });
@@ -383,8 +385,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       bottom: MediaQuery.of(context).size.height * 0.43,
       left: MediaQuery.of(context).size.width * 0.46,
       child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.20,
-        width: cardWidth,
+        height: MediaQuery.of(context).size.height * 0.22,
+        width: MediaQuery.of(context).size.height * 0.15,
         child: GestureDetector(
           onTap: () {
             if (isPlayer2Turn) {
@@ -485,15 +487,14 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 });
               },
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.19,
+                height: MediaQuery.of(context).size.height * 0.24,
                 child: Stack(
                   children: [
                     PlayingCardView(
                       card: currentCards[i],
                       style: myCardStyles,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        side: const BorderSide(color: Colors.black, width: 1),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                     if (currentCards.length > 13 && selectedCardIndex == i)
@@ -520,7 +521,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                           },
                           style: ButtonStyle(
                             minimumSize:
-                                MaterialStateProperty.all<Size>(Size(10, 10)),
+                                MaterialStateProperty.all<Size>(Size(5, 5)),
+                            padding: MaterialStateProperty.all<EdgeInsets>(
+                                EdgeInsets.symmetric(horizontal: 0)),
+                            textStyle: MaterialStateProperty.all<TextStyle>(
+                                TextStyle(fontSize: 12)),
                             // Other button style properties
                           ),
                           child: Text(discardButtonName),
@@ -545,7 +550,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             left: MediaQuery.of(context).size.width * 0.25,
             child: Container(
               height: MediaQuery.of(context).size.height * 0.17,
-              width: MediaQuery.of(context).size.width * 0.10,
+              width: MediaQuery.of(context).size.width * 0.14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -555,8 +560,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 boxShadow: [
                   BoxShadow(
                     color: Color.fromARGB(15, 189, 142, 80),
-                    blurRadius: 10.0,
-                    spreadRadius: 1.0,
                     offset: Offset(2.0, 2.0),
                   ),
                 ],
@@ -570,8 +573,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       'Show',
                     ),
                     style: ButtonStyle(
-                      minimumSize:
-                          MaterialStateProperty.all<Size>(Size(20, 30)),
                       backgroundColor:
                           MaterialStateProperty.all<Color>(Colors.black),
                     ) // set the background color to blue

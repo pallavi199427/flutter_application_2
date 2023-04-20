@@ -12,10 +12,9 @@ import 'package:flutter_application_2/widgets/background.dart';
 PlayingCardViewStyle myCardStyles = PlayingCardViewStyle(suitStyles: {
   Suit.spades: SuitStyle(
       builder: (context) => FittedBox(
-            fit: BoxFit.fitHeight,
             child: Text(
               "",
-              style: TextStyle(fontSize: 5),
+              style: TextStyle(fontSize: 2),
             ),
           ),
       style: TextStyle(color: Colors.white),
