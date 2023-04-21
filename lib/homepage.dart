@@ -16,17 +16,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isDisabled =
-      true; // Set this variable to true to disable the widgets, false to enable them
-  late List<PlayingCard> deck;
-  late int currentPlayer;
-  List<PlayingCard> discardPile = [];
-  List<PlayingCard> currentCards = [];
-  List<PlayingCard> joker = [];
-  List<PlayingCard> remainingCards = [];
-  int selectedCardIndex = -1;
-  String discardButtonName = "Discard";
-  PlayingCard? _discardedCard;
+  String ip = '0.0.0.0';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
@@ -46,21 +36,29 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  BottomBar bottomBar = BottomBar(
+    playerName: 'John',
+    toggleTimerVisibility: () {},
+    showTimer: true,
+    onComplete: () {},
+  );
+
+  bool isDisabled =
+      true; // Set this variable to true to disable the widgets, false to enable them
+  late List<PlayingCard> deck;
+  late int currentPlayer;
+  List<PlayingCard> discardPile = [];
+  List<PlayingCard> currentCards = [];
+  List<PlayingCard> joker = [];
+  List<PlayingCard> remainingCards = [];
+  int selectedCardIndex = -1;
+  String discardButtonName = "Discard";
+  PlayingCard? _discardedCard;
+
   fetchData(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
-      final player1CardsData = jsonData['Loosing Hand'];
-      List<PlayingCard> playingCards =
-          List<PlayingCard>.from(player1CardsData.map((card) {
-        final cardValue = (card['CardValue']);
-        final suit = card['Suit'];
-        return PlayingCard(
-          Suit.values.byName(suit),
-          CardValue.values.byName(cardValue),
-        );
-      }));
-      currentCards = playingCards;
 
       // Parse discard pile card
       final discardData = jsonData['OpenDeck'];
@@ -75,18 +73,6 @@ class _MyHomePageState extends State<MyHomePage> {
       }));
       discardPile = discardCards;
 
-      final remainingCardsData = jsonData['ClosedDeck'];
-      List<PlayingCard> ClosedDeck =
-          List<PlayingCard>.from(remainingCardsData.map((card) {
-        final cardValue = (card['CardValue']);
-        final suit = card['Suit'];
-        return PlayingCard(
-          Suit.values.byName(suit),
-          CardValue.values.byName(cardValue),
-        );
-      }));
-      remainingCards = ClosedDeck;
-
       final jokerPile = jsonData['Joker'];
       List<PlayingCard> jokerCard =
           List<PlayingCard>.from(jokerPile.map((card) {
@@ -99,6 +85,31 @@ class _MyHomePageState extends State<MyHomePage> {
       }));
       joker = jokerCard;
 
+      // Parse player 1 cards (Loosing hand)
+      final player1CardsData = jsonData['Loosing Hand'];
+      List<PlayingCard> playingCards =
+          List<PlayingCard>.from(player1CardsData.map((card) {
+        final cardValue = (card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      currentCards = playingCards;
+
+      final remainingCardsData = jsonData['ClosedDeck'];
+      List<PlayingCard> ClosedDeck =
+          List<PlayingCard>.from(remainingCardsData.map((card) {
+        final cardValue = (card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      remainingCards = ClosedDeck;
+
       setState(() {});
     } else {
       throw Exception('Failed to load game state');
@@ -107,15 +118,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void initState() {
     super.initState();
-    fetchData('http://192.168.0.105:8000/InitializeGame');
+    fetchData('http://$ip:8000/InitializeGame');
   }
 
-  ///
-  ///
-  ///
   fetchOpponentMove() async {
-    final response = await http
-        .get(Uri.parse('http://192.168.0.105:8000/FetchOpponentMove'));
+    final response =
+        await http.get(Uri.parse('http://$ip:8000/FetchOpponentMove'));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
       final opponentMoveData = jsonData['OpponentMove'];
@@ -151,19 +159,17 @@ class _MyHomePageState extends State<MyHomePage> {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Player 2 picked from Pile' + Pile),
+              title: Text('Player 2 picked from' + Pile + 'Pile'),
             );
           },
         );
+        fetchData('http://$ip:8000/InitializeGame');
       }
 
-      // update the state of the application with the fetched data
       setState(() {});
 
-      // wait for 3 seconds before automatically dismissing the alert box
       await Future.delayed(Duration(seconds: 3));
 
-      // dismiss the alert box
       Navigator.of(context).pop();
       _toggleBottomBarTimer();
     } else {
@@ -172,19 +178,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void PickFromClosedDeck() async {
-    fetchData('http://192.168.0.105:8000/PickFromClosedDeck');
-    //_toggleBottomBarTimer();
-    // fetchOpponentMove();
+    fetchData('http://$ip:8000/PickFromClosedDeck');
+    setState(() {});
   }
 
   void PickFromOpenDeck() async {
-    fetchData('http://192.168.0.105:8000/PickFromOpenDeck');
-    //_toggleBottomBarTimer();
-    //fetchOpponentMove();
+    fetchData('http://$ip:8000/PickFromOpenDeck');
+    setState(() {});
   }
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
-    const url = 'http://192.168.0.105:8000/DiscardCard';
+    final url = 'http://$ip:8000/DiscardCard';
     final cardJson = jsonEncode({
       'Suit': card.suit.name.toLowerCase(),
       'CardValue': card.value.name.toLowerCase(),
@@ -197,7 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
-        fetchData('http://192.168.0.105:8000/InitializeGame');
+        fetchData('http://$ip:8000/InitializeGame');
 
         fetchOpponentMove();
       });
@@ -219,7 +223,7 @@ class _MyHomePageState extends State<MyHomePage> {
       discardButtonName = "Discard";
       isShowInitated = true;
     });
-    //_buildDropZone();
+    _buildDropZone();
   }
 
   void _showMessageDialog(BuildContext context, String message) {
@@ -291,6 +295,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    const double cardWidth = 150.0;
     return SafeArea(
       child: Scaffold(
         body: Stack(
@@ -304,12 +309,101 @@ class _MyHomePageState extends State<MyHomePage> {
                 _toggleBottomBarTimer();
               },
             ),
-            _buildJoker(),
+            _buildJoker(joker),
             buildRemainingCards(),
             _buildCurrentCard(),
             _buildDiscardPile(),
             _buildDropZone(),
           ],
+        ),
+        bottomNavigationBar: BottomBar(
+          playerName: 'Player1',
+          showTimer: _showBottomBarTimer,
+          toggleTimerVisibility: _toggleBottomBarTimer,
+          onComplete: () {
+            _toggleBottomBarTimer();
+
+            bottomBar.getWin(context);
+
+            //_togglePlayer2Timer();
+          }, // <-- Pass it here
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJoker(List<PlayingCard> joker) {
+    final jokerCard = joker.isNotEmpty ? joker.first : null;
+    return jokerCard != null
+        ? Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.42,
+            left: MediaQuery.of(context).size.width * 0.38,
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.22,
+              width: MediaQuery.of(context).size.width * 0.12,
+              child: Transform.rotate(
+                angle: math.pi / -2,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PlayingCardView(
+                      card: jokerCard,
+                      showBack: false,
+                      style: myCardStyles,
+                      elevation: 3.0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(2),
+                        side: const BorderSide(color: Colors.red, width: 1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        : const SizedBox();
+  }
+
+  Widget buildRemainingCards() {
+    final cardWidth = 100.0; // Replace this with the desired width of the cards
+
+    // Check if the remainingCards list is null or empty
+    if (remainingCards == null || remainingCards.isEmpty) {
+      // Show a placeholder widget while the actual list is loading
+      return SizedBox(
+        height: MediaQuery.of(context).size.height * 0.20,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // If the remainingCards list is not null or empty, show the top card
+    final topCard = remainingCards.last;
+    return Positioned(
+      bottom: MediaQuery.of(context).size.height * 0.43,
+      left: MediaQuery.of(context).size.width * 0.46,
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.22,
+        width: MediaQuery.of(context).size.height * 0.15,
+        child: GestureDetector(
+          onTap: () {
+            if (isPlayer2Turn) {
+              _showMessageDialog(context, "Please wait for Player 2's turn");
+            } else if (currentCards.length == 14) {
+              _showMessageDialog(context, "Please select a card to discard");
+            } else {
+              PickFromClosedDeck();
+            }
+          },
+          child: PlayingCardView(
+            card: topCard,
+            showBack: true,
+            style: myCardStyles,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
         ),
       ),
     );
@@ -318,7 +412,6 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildDiscardPile({bool show = true}) {
     final PlayingCard? topCard =
         discardPile.isNotEmpty ? discardPile.first : null;
-
     return Positioned(
       bottom: MediaQuery.of(context).size.height * 0.43,
       left: MediaQuery.of(context).size.width * 0.59,
@@ -353,7 +446,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   _showMessageDialog(
                       context, "Please select a card to discard");
                 } else {
-                  PickFromClosedDeck();
+                  currentCards.add(topCard!);
+
+                  discardPile.removeAt(0);
+
+                  PickFromOpenDeck();
                 }
               },
             ),
@@ -364,11 +461,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildCurrentCard() {
+    double topPadding = 0;
+    MediaQueryData? mediaQuery = MediaQuery.of(context);
+
+    if (mediaQuery != null) {
+      topPadding = mediaQuery.size.height * 0.55; // 50% of the screen height
+    }
     return Container(
+      padding: EdgeInsets.only(
+        top: topPadding,
+      ),
       child: ReorderableWrap(
         // ignore: sort_child_properties_last
         needsLongPressDraggable: false,
-
+        onReorderStarted: (index) => 1,
         // ignore: sort_child_properties_last
         children: [
           for (int i = 0; i < currentCards.length; i++)
@@ -380,13 +486,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.24,
                 child: Stack(
                   children: [
                     PlayingCardView(
                       card: currentCards[i],
+                      style: myCardStyles,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(2),
-                        side: const BorderSide(color: Colors.black, width: 1),
                       ),
                     ),
                     if (currentCards.length > 13 && selectedCardIndex == i)
@@ -399,7 +506,10 @@ class _MyHomePageState extends State<MyHomePage> {
                             } else if (discardButtonName == 'Discard') {
                               final discardedCard1 =
                                   currentCards.removeAt(selectedCardIndex);
-                              setState(() {});
+
+                              setState(() {
+                                discardPile.add(discardedCard1);
+                              });
                               _discardCardHttpCall(discardedCard1);
                             } else {
                               // perform default action
@@ -410,7 +520,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           },
                           style: ButtonStyle(
                             minimumSize:
-                                MaterialStateProperty.all<Size>(Size(10, 10)),
+                                MaterialStateProperty.all<Size>(Size(5, 5)),
+                            padding: MaterialStateProperty.all<EdgeInsets>(
+                                EdgeInsets.symmetric(horizontal: 0)),
+                            textStyle: MaterialStateProperty.all<TextStyle>(
+                                TextStyle(fontSize: 12)),
                             // Other button style properties
                           ),
                           child: Text(discardButtonName),
@@ -426,80 +540,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildJoker() {
-    return Positioned(
-      bottom: 0.42 * MediaQuery.of(context).size.height,
-      left: 0.38 * MediaQuery.of(context).size.width,
-      child: SizedBox(
-        height: 0.22 * MediaQuery.of(context).size.height,
-        width: 0.12 * MediaQuery.of(context).size.width,
-        child: Transform.rotate(
-          angle: math.pi / -2,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              PlayingCardView(
-                card: joker[0],
-                showBack: false,
-                style: myCardStyles,
-                elevation: 3.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(2),
-                  side: const BorderSide(color: Colors.red, width: 1),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildRemainingCards() {
-    final cardWidth = 100.0; // Replace this with the desired width of the cards
-
-    // Check if the remainingCards list is null or empty
-    if (remainingCards == null || remainingCards.isEmpty) {
-      // Show a placeholder widget while the actual list is loading
-      return SizedBox(
-        height: MediaQuery.of(context).size.height * 0.20,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    // If the remainingCards list is not null or empty, show the top card
-    final topCard = remainingCards.last;
-    return Positioned(
-      bottom: MediaQuery.of(context).size.height * 0.43,
-      left: MediaQuery.of(context).size.width * 0.46,
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.20,
-        width: cardWidth,
-        child: GestureDetector(
-          onTap: () {
-            if (isPlayer2Turn) {
-              _showMessageDialog(context, "Please wait for Player 2's turn");
-            } else if (currentCards.length == 14) {
-              _showMessageDialog(context, "Please select a card to discard");
-            } else {
-              PickFromClosedDeck();
-            }
-          },
-          child: PlayingCardView(
-            card: topCard,
-            showBack: false,
-            style: myCardStyles,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDropZone() {
     return Stack(
       children: [
@@ -509,7 +549,7 @@ class _MyHomePageState extends State<MyHomePage> {
             left: MediaQuery.of(context).size.width * 0.25,
             child: Container(
               height: MediaQuery.of(context).size.height * 0.17,
-              width: MediaQuery.of(context).size.width * 0.10,
+              width: MediaQuery.of(context).size.width * 0.14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -519,8 +559,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 boxShadow: [
                   BoxShadow(
                     color: Color.fromARGB(15, 189, 142, 80),
-                    blurRadius: 10.0,
-                    spreadRadius: 1.0,
                     offset: Offset(2.0, 2.0),
                   ),
                 ],
@@ -534,8 +572,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       'Show',
                     ),
                     style: ButtonStyle(
-                      minimumSize:
-                          MaterialStateProperty.all<Size>(Size(20, 30)),
                       backgroundColor:
                           MaterialStateProperty.all<Color>(Colors.black),
                     ) // set the background color to blue

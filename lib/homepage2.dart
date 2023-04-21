@@ -36,6 +36,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     });
   }
 
+  BottomBar bottomBar = BottomBar(
+    playerName: 'John',
+    toggleTimerVisibility: () {},
+    showTimer: true,
+    onComplete: () {},
+  );
+
   bool isDisabled =
       true; // Set this variable to true to disable the widgets, false to enable them
   late List<PlayingCard> deck;
@@ -161,13 +168,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         fetchData('http://$ip:8000/InitializeGame');
       }
 
-      // update the state of the application with the fetched data
       setState(() {});
 
-      // wait for 3 seconds before automatically dismissing the alert box
       await Future.delayed(Duration(seconds: 3));
 
-      // dismiss the alert box
       Navigator.of(context).pop();
       _toggleBottomBarTimer();
     } else {
@@ -177,16 +181,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void PickFromClosedDeck() async {
     fetchData('http://$ip:8000/PickFromClosedDeck');
-    //_toggleBottomBarTimer();
-    // fetchOpponentMove();
     setState(() {});
   }
 
   void PickFromOpenDeck() async {
     fetchData('http://$ip:8000/PickFromOpenDeck');
-    //_toggleBottomBarTimer();
-    //fetchOpponentMove();
-
     setState(() {});
   }
 
@@ -326,7 +325,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           onComplete: () {
             _toggleBottomBarTimer();
 
-            _togglePlayer2Timer();
+            bottomBar.getWin(context);
+
+            //_togglePlayer2Timer();
           }, // <-- Pass it here
         ),
       ),

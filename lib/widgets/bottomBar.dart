@@ -65,7 +65,7 @@ class BottomBar extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'OK',
+                      'Leave Game',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -227,12 +227,23 @@ class BottomBar extends StatelessWidget {
               ),
             ],
           ),
-          ElevatedButton(
-            child: const Text('Submit'),
-            onPressed: () async {
-              getWin(context);
-            },
-          ),
+          Row(
+            children: [
+              ElevatedButton(
+                child: const Text('Submit'),
+                onPressed: () async {
+                  getWin(context);
+                },
+              ),
+              SizedBox(width: 10), // Add some space between the buttons
+              ElevatedButton(
+                child: const Text('Sort'),
+                onPressed: () async {
+                  // do something
+                },
+              ),
+            ],
+          )
         ],
       ),
     );
