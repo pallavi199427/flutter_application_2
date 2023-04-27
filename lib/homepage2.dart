@@ -21,7 +21,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   int selectedHandIndex = -1;
   List<List<PlayingCard>> allHands = [];
   bool showButton = false;
-  String ip = '127.0.0.1';
+  String ip = '0.0.0.0';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
@@ -204,6 +204,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   fetchOpponentMove() async {
+    print("uuuuuuuuuuuuu");
     final response =
         await http.get(Uri.parse('http://$ip:8000/FetchOpponentMove'));
     if (response.statusCode == 200) {
@@ -213,17 +214,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final Show = opponentMoveData['Show'] == 'True';
 
       if (Show) {
-        final remainingCardsData = jsonData['Winning Hand'];
-        List<PlayingCard> ClosedDeck =
-            List<PlayingCard>.from(remainingCardsData.map((card) {
-          final cardValue = (card['CardValue']);
-          final suit = card['Suit'];
-          return PlayingCard(
-            Suit.values.byName(suit),
-            CardValue.values.byName(cardValue),
-          );
-        }));
-        remainingCards = ClosedDeck;
+        _togglePlayer2Timer();
 
         // show the "submit a card for show" alert box
         showDialog(
@@ -271,7 +262,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     isPickfromClosedDeck = true;
   }
 
-  Future<void> _discardCardHttpCall(PlayingCard card) async {
+  void _discardCardHttpCall(PlayingCard card) {
     final url = 'http://$ip:8000/DiscardCard';
     final cardJson = jsonEncode({
       'Suit': card.suit.name.toLowerCase(),
@@ -279,15 +270,17 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     });
 
     try {
-      final response = await http.post(Uri.parse(url),
-          headers: {"Content-Type": "application/json"}, body: cardJson);
-      final responseData = jsonDecode(response.body);
+      http.post(
+        Uri.parse(url),
+        headers: {"Content-Type": "application/json"},
+        body: cardJson,
+      );
+
       setState(() {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
         fetchData('http://$ip:8000/InitializeGame');
         showButton = false;
-
         fetchOpponentMove();
       });
     } catch (error) {
@@ -390,7 +383,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
             bottomBar.getWin(context);
 
-            //_togglePlayer2Timer();
+            _togglePlayer2Timer();
           }, // <-- Pass it here
         ),
       ),
@@ -561,10 +554,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.065),
           itemBuilder: (context, index) {
-            final handIndex = index ~/ 5;
-            final cardIndex = index % 5;
-            final hand = allHands[handIndex];
-
+            final handIndex = index ~/ maxCardsPerHand;
+            final cardIndex = index % maxCardsPerHand;
+            final hand = allHands.isNotEmpty ? allHands[handIndex] : null;
             final card = hand != null && hand.length > cardIndex
                 ? hand[cardIndex]
                 : null;
@@ -573,7 +565,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
             if (card == null) {
               // Return an empty SizedBox to hide the item
-              return SizedBox(key: Key('empty$index'), width: 5, height: 0);
+              return SizedBox(key: Key('empty$index'), width: 15, height: 0);
             }
 
             bool isHandFinished = hand!.length == cardIndex + 1;
@@ -635,7 +627,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 if (isHandFinished)
                   SizedBox(
                     // width: MediaQuery.of(context).size.width * 0.1,
-                    width: 70,
+                    width: 100,
                     height: 10,
                   ),
                 if (showButton &&
@@ -705,15 +697,15 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               ],
             );
           },
-          itemCount: allHands.length * 5,
+          itemCount: allHands.isEmpty ? 0 : allHands.length * maxCardsPerHand,
           onReorder: (oldIndex, newIndex) {
             setState(() {
-              final oldHandIndex = oldIndex ~/ 5;
-              final oldCardIndex = oldIndex % 5;
+              final oldHandIndex = oldIndex ~/ maxCardsPerHand;
+              final oldCardIndex = oldIndex % maxCardsPerHand;
               final oldCard = allHands[oldHandIndex][oldCardIndex];
 
-              final newHandIndex = newIndex ~/ 5;
-              final newCardIndex = newIndex % 5;
+              final newHandIndex = newIndex ~/ maxCardsPerHand;
+              final newCardIndex = newIndex % maxCardsPerHand;
               final newCard = allHands[newHandIndex].length > newCardIndex
                   ? allHands[newHandIndex][newCardIndex]
                   : null;
