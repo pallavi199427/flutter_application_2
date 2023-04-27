@@ -28,6 +28,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   bool isShowInitated = false;
   int selectedCardIndex = -1;
   bool isPickfromClosedDeck = false;
+  bool isPickfromOpenDeck = false;
+
   PlayingCard? showCard;
 
   void _toggleBottomBarTimer() {
@@ -59,7 +61,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   List<PlayingCard> currentCards = [];
   List<PlayingCard> joker = [];
   List<PlayingCard> remainingCards = [];
-  PlayingCard PickedCard = PlayingCard(Suit.spades, CardValue.king);
+  List<PlayingCard> PickedCard = [];
 
   String discardButtonName = "Discard";
   PlayingCard? _discardedCard;
@@ -109,8 +111,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             .toList()
         : [];
     setState(() {
-      print("here");
-
       allHands = [
         playingCards,
         secondset,
@@ -176,7 +176,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
       if (jsonData.containsKey('CardPick')) {
         final CardPickData = jsonData['CardPick'];
-        List<PlayingCard> CardPick =
+        List<PlayingCard> PickedCard1 =
             List<PlayingCard>.from(CardPickData.map((card) {
           final cardValue = (card['CardValue']);
           final suit = card['Suit'];
@@ -185,8 +185,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             CardValue.values.byName(cardValue),
           );
         }));
-        PickedCard = CardPick.first;
+        PickedCard = PickedCard1;
+        print("PrintedCard" + CardPickData.toString());
       } else {
+        print("no printing");
         // Handle case where 'CardPick' key is not present in jsonData
       }
 
@@ -261,19 +263,13 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void PickFromClosedDeck() async {
     fetchData('http://$ip:8000/PickFromClosedDeck');
-    setState(() {
-      isPickfromClosedDeck = !isPickfromClosedDeck;
-
-      //isPickfromClosedDeck = !isPickfromClosedDeck;
-    });
+    isPickfromClosedDeck = true;
   }
 
   void PickFromOpenDeck() async {
     fetchData('http://$ip:8000/PickFromOpenDeck');
 
-    setState(() {
-      isPickfromClosedDeck = !isPickfromClosedDeck;
-    });
+    isPickfromClosedDeck = true;
   }
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
@@ -544,22 +540,19 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     }
 
     if (isPickfromClosedDeck) {
-      if (allHands.isNotEmpty) {
-        final lastHand = allHands.last;
-        if (lastHand.length < maxCardsPerHand) {
-          // If the last hand is not full, add the card to it
-          lastHand.add(PickedCard);
-        } else {
-          // If the last hand is full, create a new hand and add the card to it
-          allHands.add([PickedCard]);
-          maxCardsPerHand++;
-        }
-      } else {
-        // If there are no hands yet, create a new hand with the picked card
-        allHands.add([PickedCard]);
-        maxCardsPerHand = 1;
+      final lastHand = allHands.last;
+      print(PickedCard.length);
+      for (var card in PickedCard) {
+        print('Suit: ${card.suit}, Value: ${card.value}');
       }
-      isPickfromClosedDeck = !isPickfromClosedDeck;
+      print("1st loop");
+      setState(() {
+        lastHand.addAll(PickedCard);
+      });
+      setState(() {
+        isPickfromClosedDeck = false;
+        allHands[allHands.length - 1] = lastHand;
+      });
     } else {}
 
     return Positioned(
@@ -603,7 +596,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       }
                       int totalCardCount = allHands.fold<int>(
                           0, (sum, hand) => sum + hand.length);
-                      print(totalCardCount);
                       if (totalCardCount > 13) {
                         selectedHandIndex = handIndex;
                         selectedCardIndex1 = cardIndex;
@@ -617,8 +609,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       } else {
                         showButton = false;
                       }
-                      print(
-                          'Selected cards: ${selectedCards.map((card) => '${card.suit} ${card.value}').join(', ')}');
                     });
                   },
                   child: SizedBox(
@@ -707,12 +697,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                             hand.remove(showCard);
                             _buildDropZone();
 
-                            print(
-                                "Suit: ${showCard.suit}, Value: ${showCard.value}");
                             selectedCardIndex1 = -1;
                             selectedCards.length = 0;
                             buttonText = "Discard";
-                            print("showCard before _buildDropZone: $showCard");
                           });
                         }
                       },
@@ -750,7 +737,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   Widget _buildDropZone() {
-    print("Suit: ${showCard?.suit}, Value: ${showCard?.value}");
     return Stack(
       children: [
         if (showCard == null) // only render if _discardedCard is null
