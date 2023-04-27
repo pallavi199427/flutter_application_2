@@ -235,13 +235,6 @@ class BottomBar extends StatelessWidget {
                   getWin(context);
                 },
               ),
-              SizedBox(width: 10), // Add some space between the buttons
-              ElevatedButton(
-                child: const Text('Sort'),
-                onPressed: () async {
-                  // do something
-                },
-              ),
             ],
           )
         ],

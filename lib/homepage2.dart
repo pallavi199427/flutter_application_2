@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
-import 'package:reorderables/reorderables.dart';
 import 'package:flutter_application_2/widgets/bottomBar.dart';
 import 'package:flutter_application_2/widgets/player2widget.dart';
 import 'package:flutter_application_2/widgets/background.dart';
@@ -16,11 +15,20 @@ class MyHomePage2 extends StatefulWidget {
 }
 
 class _MyHomePageState2 extends State<MyHomePage2> {
-  String ip = '0.0.0.0';
+  List<PlayingCard> selectedCards = [];
+  String buttonText = '';
+  int selectedCardIndex1 = -1;
+  int selectedHandIndex = -1;
+  List<List<PlayingCard>> allHands = [];
+  bool showButton = false;
+  String ip = '127.0.0.1';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
   bool isShowInitated = false;
+  int selectedCardIndex = -1;
+  bool isPickfromClosedDeck = false;
+  PlayingCard? showCard;
 
   void _toggleBottomBarTimer() {
     setState(() {
@@ -51,9 +59,78 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   List<PlayingCard> currentCards = [];
   List<PlayingCard> joker = [];
   List<PlayingCard> remainingCards = [];
-  int selectedCardIndex = -1;
+  PlayingCard PickedCard = PlayingCard(Suit.spades, CardValue.king);
+
   String discardButtonName = "Discard";
   PlayingCard? _discardedCard;
+
+  void parseJsonData(Map<String, dynamic> jsonData) {
+    final Map<String, dynamic> playerCardsData =
+        jsonData['Loosing_Hand_Sorted'];
+    final List<PlayingCard> playingCards = playerCardsData.containsKey('0')
+        ? playerCardsData['0']
+            .map<PlayingCard>((card) => PlayingCard(
+                  Suit.values.byName(card['Suit']),
+                  CardValue.values.byName(card['CardValue']),
+                ))
+            .toList()
+        : [];
+
+    final List<PlayingCard> secondset = playerCardsData.containsKey('1')
+        ? playerCardsData['1']
+            .map<PlayingCard>((card) => PlayingCard(
+                  Suit.values.byName(card['Suit']),
+                  CardValue.values.byName(card['CardValue']),
+                ))
+            .toList()
+        : [];
+    final List<PlayingCard> thirdset = playerCardsData.containsKey('2')
+        ? playerCardsData['2']
+            .map<PlayingCard>((card) => PlayingCard(
+                  Suit.values.byName(card['Suit']),
+                  CardValue.values.byName(card['CardValue']),
+                ))
+            .toList()
+        : [];
+    final List<PlayingCard> fourthset = playerCardsData.containsKey('3')
+        ? playerCardsData['3']
+            .map<PlayingCard>((card) => PlayingCard(
+                  Suit.values.byName(card['Suit']),
+                  CardValue.values.byName(card['CardValue']),
+                ))
+            .toList()
+        : [];
+    final List<PlayingCard> fifthset = playerCardsData.containsKey('4')
+        ? playerCardsData['4']
+            .map<PlayingCard>((card) => PlayingCard(
+                  Suit.values.byName(card['Suit']),
+                  CardValue.values.byName(card['CardValue']),
+                ))
+            .toList()
+        : [];
+    setState(() {
+      print("here");
+
+      allHands = [
+        playingCards,
+        secondset,
+        thirdset,
+        fourthset,
+        fifthset,
+      ];
+    });
+  }
+
+  Future<void> fetchDataSort(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      parseJsonData(jsonData);
+      setState(() {});
+    } else {
+      throw Exception('Failed to load game state');
+    }
+  }
 
   fetchData(String url) async {
     final response = await http.get(Uri.parse(url));
@@ -84,21 +161,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       }));
       joker = jokerCard;
-      print(jokerCard.toString());
-      print(jokerPile.toString());
-
-      // Parse player 1 cards (Loosing hand)
-      final player1CardsData = jsonData['Loosing Hand'];
-      List<PlayingCard> playingCards =
-          List<PlayingCard>.from(player1CardsData.map((card) {
-        final cardValue = (card['CardValue']);
-        final suit = card['Suit'];
-        return PlayingCard(
-          Suit.values.byName(suit),
-          CardValue.values.byName(cardValue),
-        );
-      }));
-      currentCards = playingCards;
 
       final remainingCardsData = jsonData['ClosedDeck'];
       List<PlayingCard> ClosedDeck =
@@ -112,6 +174,22 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       }));
       remainingCards = ClosedDeck;
 
+      if (jsonData.containsKey('CardPick')) {
+        final CardPickData = jsonData['CardPick'];
+        List<PlayingCard> CardPick =
+            List<PlayingCard>.from(CardPickData.map((card) {
+          final cardValue = (card['CardValue']);
+          final suit = card['Suit'];
+          return PlayingCard(
+            Suit.values.byName(suit),
+            CardValue.values.byName(cardValue),
+          );
+        }));
+        PickedCard = CardPick.first;
+      } else {
+        // Handle case where 'CardPick' key is not present in jsonData
+      }
+
       setState(() {});
     } else {
       throw Exception('Failed to load game state');
@@ -121,6 +199,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   void initState() {
     super.initState();
     fetchData('http://$ip:8000/InitializeGame');
+    fetchDataSort('http://$ip:8000/InitializeGame');
   }
 
   fetchOpponentMove() async {
@@ -165,10 +244,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             );
           },
         );
-        fetchData('http://$ip:8000/InitializeGame');
       }
 
-      setState(() {});
+      setState(() {
+        fetchData('http://$ip:8000/InitializeGame');
+      });
 
       await Future.delayed(Duration(seconds: 3));
 
@@ -181,12 +261,19 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void PickFromClosedDeck() async {
     fetchData('http://$ip:8000/PickFromClosedDeck');
-    setState(() {});
+    setState(() {
+      isPickfromClosedDeck = !isPickfromClosedDeck;
+
+      //isPickfromClosedDeck = !isPickfromClosedDeck;
+    });
   }
 
   void PickFromOpenDeck() async {
     fetchData('http://$ip:8000/PickFromOpenDeck');
-    setState(() {});
+
+    setState(() {
+      isPickfromClosedDeck = !isPickfromClosedDeck;
+    });
   }
 
   Future<void> _discardCardHttpCall(PlayingCard card) async {
@@ -204,6 +291,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
         fetchData('http://$ip:8000/InitializeGame');
+        showButton = false;
 
         fetchOpponentMove();
       });
@@ -214,18 +302,8 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void _onDiscardforShowButtonPressed() {
     setState(() {
-      discardButtonName = "Discard \nfor show";
+      buttonText = "Discard \nfor show";
     });
-  }
-
-  void _onChangeButtonPressed() {
-    setState(() {
-      _discardedCard = currentCards.removeAt(selectedCardIndex);
-      selectedCardIndex = -1;
-      discardButtonName = "Discard";
-      isShowInitated = true;
-    });
-    _buildDropZone();
   }
 
   void _showMessageDialog(BuildContext context, String message) {
@@ -283,16 +361,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         );
       },
     );
-  }
-
-  void _onReorder(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final card = currentCards.removeAt(oldIndex);
-      currentCards.insert(newIndex, card);
-    });
   }
 
   @override
@@ -390,9 +458,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
         width: MediaQuery.of(context).size.height * 0.15,
         child: GestureDetector(
           onTap: () {
+            int totalCardCount =
+                allHands.fold<int>(0, (sum, hand) => sum + hand.length);
             if (isPlayer2Turn) {
               _showMessageDialog(context, "Please wait for Player 2's turn");
-            } else if (currentCards.length == 14) {
+            } else if (totalCardCount == 14) {
               _showMessageDialog(context, "Please select a card to discard");
             } else {
               PickFromClosedDeck();
@@ -441,15 +511,15 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             ),
             GestureDetector(
               onTap: () {
+                int totalCardCount =
+                    allHands.fold<int>(0, (sum, hand) => sum + hand.length);
                 if (isPlayer2Turn) {
                   _showMessageDialog(
                       context, "Please wait for Player 2's turn");
-                } else if (currentCards.length == 14) {
+                } else if (totalCardCount == 14) {
                   _showMessageDialog(
                       context, "Please select a card to discard");
                 } else {
-                  currentCards.add(topCard!);
-
                   discardPile.removeAt(0);
 
                   PickFromOpenDeck();
@@ -463,89 +533,227 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   }
 
   Widget _buildCurrentCard() {
-    double topPadding = 0;
-    MediaQueryData? mediaQuery = MediaQuery.of(context);
+    int maxCardsPerHand = 5;
+    bool isFirstHand = true;
 
-    if (mediaQuery != null) {
-      topPadding = mediaQuery.size.height * 0.55; // 50% of the screen height
+    if (allHands.isNotEmpty) {
+      maxCardsPerHand = allHands
+          .reduce((value, element) =>
+              value.length > element.length ? value : element)
+          .length;
     }
-    return Container(
-      padding: EdgeInsets.only(
-        top: topPadding,
-      ),
-      child: ReorderableWrap(
-        // ignore: sort_child_properties_last
-        needsLongPressDraggable: false,
-        onReorderStarted: (index) => 1,
-        // ignore: sort_child_properties_last
-        children: [
-          for (int i = 0; i < currentCards.length; i++)
-            GestureDetector(
-              key: Key(currentCards[i].toString()),
-              onTap: () {
-                setState(() {
-                  selectedCardIndex = i;
-                });
-              },
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.24,
-                child: Stack(
-                  children: [
-                    PlayingCardView(
-                      card: currentCards[i],
-                      style: myCardStyles,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    if (currentCards.length > 13 && selectedCardIndex == i)
-                      Positioned(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (isPlayer2Turn) {
-                              _showMessageDialog(
-                                  context, "Please wait for Player 2's turn");
-                            } else if (discardButtonName == 'Discard') {
-                              final discardedCard1 =
-                                  currentCards.removeAt(selectedCardIndex);
 
-                              setState(() {
-                                discardPile.add(discardedCard1);
-                              });
-                              _discardCardHttpCall(discardedCard1);
-                            } else {
-                              // perform default action
-                              setState(() {
-                                _onChangeButtonPressed();
-                              });
-                            }
-                          },
-                          style: ButtonStyle(
-                            minimumSize:
-                                MaterialStateProperty.all<Size>(Size(5, 5)),
-                            padding: MaterialStateProperty.all<EdgeInsets>(
-                                EdgeInsets.symmetric(horizontal: 0)),
-                            textStyle: MaterialStateProperty.all<TextStyle>(
-                                TextStyle(fontSize: 12)),
-                            // Other button style properties
+    if (isPickfromClosedDeck) {
+      if (allHands.isNotEmpty) {
+        final lastHand = allHands.last;
+        if (lastHand.length < maxCardsPerHand) {
+          // If the last hand is not full, add the card to it
+          lastHand.add(PickedCard);
+        } else {
+          // If the last hand is full, create a new hand and add the card to it
+          allHands.add([PickedCard]);
+          maxCardsPerHand++;
+        }
+      } else {
+        // If there are no hands yet, create a new hand with the picked card
+        allHands.add([PickedCard]);
+        maxCardsPerHand = 1;
+      }
+      isPickfromClosedDeck = !isPickfromClosedDeck;
+    } else {}
+
+    return Positioned(
+      top: MediaQuery.of(context).size.height * 0.45,
+      width: MediaQuery.of(context).size.width,
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: ReorderableListView.builder(
+          shrinkWrap: true,
+          buildDefaultDragHandles: false,
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.065),
+          itemBuilder: (context, index) {
+            final handIndex = index ~/ maxCardsPerHand;
+            final cardIndex = index % maxCardsPerHand;
+            final hand = allHands.isNotEmpty ? allHands[handIndex] : null;
+            final card = hand != null && hand.length > cardIndex
+                ? hand[cardIndex]
+                : null;
+            bool isSelectedCard = cardIndex == selectedCardIndex1 &&
+                handIndex == selectedHandIndex;
+
+            if (card == null) {
+              // Return an empty SizedBox to hide the item
+              return SizedBox(key: Key('empty$index'), width: 2, height: 0);
+            }
+
+            bool isHandFinished = hand!.length == cardIndex + 1;
+
+            return Stack(
+              key: Key('$handIndex$cardIndex'),
+              children: [
+                GestureDetector(
+                  key: Key('$handIndex$cardIndex'),
+                  onTap: () {
+                    setState(() {
+                      if (isSelectedCard) {
+                        selectedCards.remove(card);
+                      } else {
+                        selectedCards.add(card);
+                      }
+                      int totalCardCount = allHands.fold<int>(
+                          0, (sum, hand) => sum + hand.length);
+                      print(totalCardCount);
+                      if (totalCardCount > 13) {
+                        selectedHandIndex = handIndex;
+                        selectedCardIndex1 = cardIndex;
+                        buttonText = 'Discard';
+                        showButton = true;
+                      } else if (selectedCards.length > 1) {
+                        selectedHandIndex = handIndex;
+                        selectedCardIndex1 = cardIndex;
+                        buttonText = 'Group';
+                        showButton = true;
+                      } else {
+                        showButton = false;
+                      }
+                      print(
+                          'Selected cards: ${selectedCards.map((card) => '${card.suit} ${card.value}').join(', ')}');
+                    });
+                  },
+                  child: SizedBox(
+                    key: Key('$handIndex$cardIndex'),
+                    height: MediaQuery.of(context).size.height * 0.24,
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: Container(
+                        child: PlayingCardView(
+                          card: card,
+                          showBack: false,
+                          style: myCardStyles,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(2),
+                            side:
+                                const BorderSide(color: Colors.black, width: 1),
                           ),
-                          child: Text(discardButtonName),
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelectedCard
+                              ? Colors.blue.withOpacity(0.5)
+                              : null,
                         ),
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-        ],
-        onReorder: _onReorder,
+                if (isHandFinished)
+                  SizedBox(
+                    // width: MediaQuery.of(context).size.width * 0.1,
+                    width: 70,
+                    height: 10,
+                  ),
+                if (showButton &&
+                    cardIndex == selectedCardIndex1 &&
+                    handIndex ==
+                        selectedHandIndex) // Display the ElevatedButton if shouldShowButton is true
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: ElevatedButton(
+                      style: ButtonStyle(
+                        minimumSize:
+                            MaterialStateProperty.all<Size>(Size(5, 5)),
+                        padding: MaterialStateProperty.all<EdgeInsets>(
+                            EdgeInsets.symmetric(horizontal: 0)),
+
+                        // Other button style properties
+                      ),
+                      onPressed: () {
+                        if (buttonText == 'Discard') {
+                          final discardedCard1 = allHands[selectedHandIndex]
+                              .removeAt(selectedCardIndex1);
+                          hand.remove(discardedCard1);
+                          selectedCardIndex1 = -1;
+                          selectedCards.length = 0;
+                          setState(() {
+                            discardPile.add(discardedCard1);
+                          });
+
+                          _discardCardHttpCall(discardedCard1);
+                        } else if (buttonText == 'Group') {
+                          setState(() {
+                            // Combine selected cards into a single list
+                            final selectedHand = selectedCards.toList();
+
+                            // Remove selected cards from their original hands
+                            for (final card in selectedCards) {
+                              allHands[selectedHandIndex].remove(card);
+                            }
+
+                            // Add selected cards to the new hand at position 0
+                            allHands.insert(0, selectedHand);
+
+                            // Clear selection state
+                            selectedCards.clear();
+                            selectedHandIndex = 0;
+                            selectedCardIndex = -1;
+                            buttonText = 'Discard';
+                            showButton = false;
+                          });
+                        } else {
+                          setState(() {
+                            final showCard = allHands[selectedHandIndex]
+                                .removeAt(selectedCardIndex1);
+                            hand.remove(showCard);
+                            _buildDropZone();
+
+                            print(
+                                "Suit: ${showCard.suit}, Value: ${showCard.value}");
+                            selectedCardIndex1 = -1;
+                            selectedCards.length = 0;
+                            buttonText = "Discard";
+                            print("showCard before _buildDropZone: $showCard");
+                          });
+                        }
+                      },
+                      child: Text(buttonText),
+                    ),
+                  ),
+              ],
+            );
+          },
+          itemCount: allHands.isEmpty ? 0 : allHands.length * maxCardsPerHand,
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              final oldHandIndex = oldIndex ~/ maxCardsPerHand;
+              final oldCardIndex = oldIndex % maxCardsPerHand;
+              final oldCard = allHands[oldHandIndex][oldCardIndex];
+
+              final newHandIndex = newIndex ~/ maxCardsPerHand;
+              final newCardIndex = newIndex % maxCardsPerHand;
+              final newCard = allHands[newHandIndex].length > newCardIndex
+                  ? allHands[newHandIndex][newCardIndex]
+                  : null;
+
+              if (newCard != null) {
+                allHands[oldHandIndex][oldCardIndex] = newCard;
+                allHands[newHandIndex][newCardIndex] = oldCard;
+              } else {
+                allHands[newHandIndex].add(oldCard);
+                allHands[oldHandIndex].removeAt(oldCardIndex);
+              }
+            });
+          },
+        ),
       ),
     );
   }
 
   Widget _buildDropZone() {
+    print("Suit: ${showCard?.suit}, Value: ${showCard?.value}");
     return Stack(
       children: [
-        if (_discardedCard == null) // only render if _discardedCard is null
+        if (showCard == null) // only render if _discardedCard is null
           Positioned(
             bottom: MediaQuery.of(context).size.height * 0.46,
             left: MediaQuery.of(context).size.width * 0.25,
@@ -581,14 +789,14 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               ),
             ),
           ),
-        if (_discardedCard != null) // only render if _discardedCard is not null
+        if (showCard != null) // only render if _discardedCard is not null
           Positioned(
             bottom: MediaQuery.of(context).size.height * 0.43,
             left: MediaQuery.of(context).size.width * 0.25,
             child: SizedBox(
               height: MediaQuery.of(context).size.height * 0.19,
               child: PlayingCardView(
-                card: _discardedCard!,
+                card: showCard!,
                 style: myCardStyles,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),

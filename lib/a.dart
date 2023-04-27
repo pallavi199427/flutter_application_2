@@ -15,8 +15,9 @@ class _MyHomePageState extends State<MyHomePage> {
   String buttonText = '';
   int? selectedCardIndex = -1;
   int selectedHandIndex = -1;
-  String ip = '127.0.0.1';
   bool showButton = false;
+
+  String ip = '127.0.0.1';
   List<PlayingCard> playingCards = [];
   List<PlayingCard> secondset = [];
   List<PlayingCard> thirdset = [];
@@ -27,8 +28,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<List<PlayingCard>> allHands = [];
 
   void parseJsonData(Map<String, dynamic> jsonData) {
-    final Map<String, dynamic> playerCardsData =
-        jsonData['Loosing_Hand_Sorted'];
+    final Map<String, dynamic> playerCardsData = jsonData['Loosing Hand'];
     final List<PlayingCard> playingCards = playerCardsData.containsKey('0')
         ? playerCardsData['0']
             .map<PlayingCard>((card) => PlayingCard(
@@ -37,7 +37,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ))
             .toList()
         : [];
-
     final List<PlayingCard> secondset = playerCardsData.containsKey('1')
         ? playerCardsData['1']
             .map<PlayingCard>((card) => PlayingCard(
@@ -71,8 +70,6 @@ class _MyHomePageState extends State<MyHomePage> {
             .toList()
         : [];
     setState(() {
-      print("here");
-
       allHands = [
         playingCards,
         secondset,
@@ -96,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void initState() {
     super.initState();
-    fetchData('http://$ip:8000/InitializeGame');
+    fetchData('http://$ip:5000/InitializeGame');
   }
 
   @override
@@ -121,7 +118,6 @@ class _MyHomePageState extends State<MyHomePage> {
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.5,
         child: ReorderableListView.builder(
-          shrinkWrap: true,
           buildDefaultDragHandles: false,
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.065),
@@ -134,54 +130,110 @@ class _MyHomePageState extends State<MyHomePage> {
                 handIndex == selectedHandIndex;
             bool isLastSelectedCard =
                 isSelectedCard && selectedCards.length == 1;
+
             if (card == null) {
               // Return an empty SizedBox to hide the item
-              return SizedBox(key: Key('empty$index'), width: 1, height: 0);
+              return SizedBox(key: Key('empty$index'), width: 2, height: 0);
             }
 
-            bool isHandFinished = hand.length == cardIndex + 1;
+            if (cardIndex == 0 && handIndex > 0) {
+              // Return a SizedBox with the desired spacing after every hand
+              return SizedBox(key: Key('empty$index'), width: 10);
+            }
 
-            // Check if the current card should have the ElevatedButton displayed
-            return Stack(
+            return SizedBox(
               key: Key('$handIndex$cardIndex'),
-              children: [
-                GestureDetector(
-                  key: Key('$handIndex$cardIndex'),
-                  child: SizedBox(
-                    key: Key('$handIndex$cardIndex'),
-                    height: MediaQuery.of(context).size.height * 0.24,
-                    child: ReorderableDragStartListener(
-                      index: index,
-                      child: Container(
-                        child: PlayingCardView(
-                          card: card,
-                          showBack: false,
-                          style: myCardStyles,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(2),
-                            side:
-                                const BorderSide(color: Colors.black, width: 1),
-                          ),
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelectedCard
-                              ? Colors.blue.withOpacity(0.5)
-                              : null,
+              height: MediaQuery.of(context).size.height * 0.24,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    // When the card is tapped, update selectedCards list and showButton flag
+                    if (isSelectedCard) {
+                      selectedCards.remove(card);
+                    } else {
+                      selectedCards.add(card);
+                    }
+
+                    if (selectedCards.length == 1) {
+                      selectedHandIndex = handIndex;
+                      selectedCardIndex = cardIndex;
+                      buttonText = 'Discard';
+                      showButton = true;
+                    } else if (selectedCards.length > 1) {
+                      selectedHandIndex = handIndex;
+                      selectedCardIndex = cardIndex;
+                      buttonText = 'Group';
+                      showButton = true;
+                    } else {
+                      showButton = false;
+                    }
+                  });
+
+                  print(
+                      'Selected cards: ${selectedCards.map((card) => '${card.suit} ${card.value}').join(', ')}');
+                },
+                child: Stack(
+                  children: [
+                    Container(
+                      child: PlayingCardView(
+                        card: card,
+                        showBack: false,
+                        style: myCardStyles,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2),
+                          side: const BorderSide(color: Colors.black, width: 1),
                         ),
                       ),
+                      decoration: BoxDecoration(
+                        color: isSelectedCard
+                            ? Colors.blue.withOpacity(0.5)
+                            : null,
+                      ),
                     ),
-                  ),
+                    if (showButton &&
+                        showButton &&
+                        cardIndex == selectedCardIndex &&
+                        handIndex ==
+                            selectedHandIndex) // Conditionally show the ElevatedButton only for the last selected card
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (buttonText == 'Discard') {
+                            } else if (buttonText == "Group") {
+                            } else {}
+                          },
+                          child: Text(buttonText),
+                        ),
+                      ),
+                  ],
                 ),
-                if (isHandFinished)
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.1,
-                    height: 10,
-                  ),
-              ],
+              ),
             );
           },
           itemCount: allHands.length * 5,
-          onReorder: (oldIndex, newIndex) {},
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              final oldHandIndex = oldIndex ~/ 5;
+              final oldCardIndex = oldIndex % 5;
+              final oldCard = allHands[oldHandIndex][oldCardIndex];
+
+              final newHandIndex = newIndex ~/ 5;
+              final newCardIndex = newIndex % 5;
+              final newCard = allHands[newHandIndex].length > newCardIndex
+                  ? allHands[newHandIndex][newCardIndex]
+                  : null;
+
+              if (newCard != null) {
+                allHands[oldHandIndex][oldCardIndex] = newCard;
+                allHands[newHandIndex][newCardIndex] = oldCard;
+              } else {
+                allHands[newHandIndex].add(oldCard);
+                allHands[oldHandIndex].removeAt(oldCardIndex);
+              }
+            });
+          },
         ),
       ),
     );
