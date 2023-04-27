@@ -186,7 +186,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           );
         }));
         PickedCard = PickedCard1;
-        print("PrintedCard" + CardPickData.toString());
       } else {
         print("no printing");
         // Handle case where 'CardPick' key is not present in jsonData
@@ -541,11 +540,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
     if (isPickfromClosedDeck) {
       final lastHand = allHands.last;
-      print(PickedCard.length);
-      for (var card in PickedCard) {
-        print('Suit: ${card.suit}, Value: ${card.value}');
-      }
-      print("1st loop");
+      for (var card in PickedCard) {}
       setState(() {
         lastHand.addAll(PickedCard);
       });
@@ -566,9 +561,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.065),
           itemBuilder: (context, index) {
-            final handIndex = index ~/ maxCardsPerHand;
-            final cardIndex = index % maxCardsPerHand;
-            final hand = allHands.isNotEmpty ? allHands[handIndex] : null;
+            final handIndex = index ~/ 5;
+            final cardIndex = index % 5;
+            final hand = allHands[handIndex];
+
             final card = hand != null && hand.length > cardIndex
                 ? hand[cardIndex]
                 : null;
@@ -577,7 +573,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
             if (card == null) {
               // Return an empty SizedBox to hide the item
-              return SizedBox(key: Key('empty$index'), width: 2, height: 0);
+              return SizedBox(key: Key('empty$index'), width: 5, height: 0);
             }
 
             bool isHandFinished = hand!.length == cardIndex + 1;
@@ -709,15 +705,15 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               ],
             );
           },
-          itemCount: allHands.isEmpty ? 0 : allHands.length * maxCardsPerHand,
+          itemCount: allHands.length * 5,
           onReorder: (oldIndex, newIndex) {
             setState(() {
-              final oldHandIndex = oldIndex ~/ maxCardsPerHand;
-              final oldCardIndex = oldIndex % maxCardsPerHand;
+              final oldHandIndex = oldIndex ~/ 5;
+              final oldCardIndex = oldIndex % 5;
               final oldCard = allHands[oldHandIndex][oldCardIndex];
 
-              final newHandIndex = newIndex ~/ maxCardsPerHand;
-              final newCardIndex = newIndex % maxCardsPerHand;
+              final newHandIndex = newIndex ~/ 5;
+              final newCardIndex = newIndex % 5;
               final newCard = allHands[newHandIndex].length > newCardIndex
                   ? allHands[newHandIndex][newCardIndex]
                   : null;

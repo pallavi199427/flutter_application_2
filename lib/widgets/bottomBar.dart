@@ -202,7 +202,7 @@ class BottomBar extends StatelessWidget {
           if (showTimer) // Conditionally show the timer widget
             CountdownTimerWidget(
               ringColor: Colors.black,
-              durationInSeconds: 60,
+              durationInSeconds: 30,
               onTimerComplete: () {
                 onComplete(); // <-- Call it here
               },
