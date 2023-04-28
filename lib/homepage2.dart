@@ -21,7 +21,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   int selectedHandIndex = -1;
   List<List<PlayingCard>> allHands = [];
   bool showButton = false;
-  String ip = '0.0.0.0';
+  String ip = '127.0.0.1:8000';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
@@ -199,14 +199,12 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
   void initState() {
     super.initState();
-    fetchData('http://$ip:8000/InitializeGame');
-    fetchDataSort('http://$ip:8000/InitializeGame');
+    fetchData('http://$ip/InitializeGame');
+    fetchDataSort('http://$ip/InitializeGame');
   }
 
   fetchOpponentMove() async {
-    print("uuuuuuuuuuuuu");
-    final response =
-        await http.get(Uri.parse('http://$ip:8000/FetchOpponentMove'));
+    final response = await http.get(Uri.parse('http://$ip/FetchOpponentMove'));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
       final opponentMoveData = jsonData['OpponentMove'];
@@ -214,7 +212,17 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       final Show = opponentMoveData['Show'] == 'True';
 
       if (Show) {
-        _togglePlayer2Timer();
+        final remainingCardsData = jsonData['Winning Hand'];
+        List<PlayingCard> ClosedDeck =
+            List<PlayingCard>.from(remainingCardsData.map((card) {
+          final cardValue = (card['CardValue']);
+          final suit = card['Suit'];
+          return PlayingCard(
+            Suit.values.byName(suit),
+            CardValue.values.byName(cardValue),
+          );
+        }));
+        remainingCards = ClosedDeck;
 
         // show the "submit a card for show" alert box
         showDialog(
@@ -236,11 +244,10 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             );
           },
         );
+        fetchData('http://$ip/InitializeGame');
       }
 
-      setState(() {
-        fetchData('http://$ip:8000/InitializeGame');
-      });
+      setState(() {});
 
       await Future.delayed(Duration(seconds: 3));
 
@@ -251,40 +258,36 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     }
   }
 
-  void PickFromClosedDeck() async {
-    fetchData('http://$ip:8000/PickFromClosedDeck');
+  void PickFromClosedDeck() {
+    fetchData('http://$ip/PickFromClosedDeck');
     isPickfromClosedDeck = true;
   }
 
-  void PickFromOpenDeck() async {
-    fetchData('http://$ip:8000/PickFromOpenDeck');
+  void PickFromOpenDeck() {
+    fetchData('http://$ip/PickFromOpenDeck');
 
     isPickfromClosedDeck = true;
   }
 
-  void _discardCardHttpCall(PlayingCard card) {
-    final url = 'http://$ip:8000/DiscardCard';
+  _discardCardHttpCall(PlayingCard card) async {
+    final url = 'http://$ip/DiscardCard';
     final cardJson = jsonEncode({
       'Suit': card.suit.name.toLowerCase(),
       'CardValue': card.value.name.toLowerCase(),
     });
 
     try {
-      http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: cardJson,
-      );
+      final response = http.post(Uri.parse(url),
+          headers: {"Content-Type": "application/json"}, body: cardJson);
 
       setState(() {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
-        fetchData('http://$ip:8000/InitializeGame');
-        showButton = false;
+        fetchData('http://$ip/InitializeGame');
         fetchOpponentMove();
       });
     } catch (error) {
-      print(error);
+      print("here");
     }
   }
 
@@ -565,7 +568,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
             if (card == null) {
               // Return an empty SizedBox to hide the item
-              return SizedBox(key: Key('empty$index'), width: 15, height: 0);
+              return SizedBox(key: Key('empty$index'), width: 5, height: 0);
             }
 
             bool isHandFinished = hand!.length == cardIndex + 1;
@@ -627,7 +630,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                 if (isHandFinished)
                   SizedBox(
                     // width: MediaQuery.of(context).size.width * 0.1,
-                    width: 100,
+                    width: 80,
                     height: 10,
                   ),
                 if (showButton &&

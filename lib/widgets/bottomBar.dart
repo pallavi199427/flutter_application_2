@@ -2,17 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:random_avatar/random_avatar.dart';
 
 import 'package:flutter_application_2/widgets/timer.dart';
-import 'package:flutter_application_2/widgets/leaderboard.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
-import 'package:playing_cards/playing_cards.dart';
-import 'package:reorderables/reorderables.dart';
-import 'package:flutter_application_2/widgets/bottomBar.dart';
-import 'package:flutter_application_2/widgets/player2widget.dart';
-import 'package:flutter_application_2/widgets/background.dart';
-import 'package:flutter_application_2/widgets/cards.dart';
+import 'package:flutter_application_2/homepage2.dart';
 
 class BottomBar extends StatelessWidget {
   final String playerName;
@@ -235,6 +228,15 @@ class BottomBar extends StatelessWidget {
                   getWin(context);
                 },
               ),
+              /* ElevatedButton(
+                child: const Text('Restart Game'),
+                onPressed: () async {
+                  final url = 'http://127.0.0.1:8000/Reset';
+                  final response = await http.post(Uri.parse(url));
+                  final url1 = 'http://127.0.0.1:8000/InitializeGame';
+                  final response1 = await http.post(Uri.parse(url));
+                },
+              ),*/
             ],
           )
         ],
