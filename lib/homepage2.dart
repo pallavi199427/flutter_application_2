@@ -21,7 +21,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   int selectedHandIndex = -1;
   List<List<PlayingCard>> allHands = [];
   bool showButton = false;
-  String ip = '127.0.0.1:8000';
+  String ip = '35.200.146.31';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;

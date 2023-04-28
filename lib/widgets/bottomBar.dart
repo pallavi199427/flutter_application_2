@@ -79,7 +79,7 @@ class BottomBar extends StatelessWidget {
   }
 
   Future<void> getWin(BuildContext context) async {
-    final response = await http.get(Uri.parse('http://0.0.0.0:8000/GetWin'));
+    final response = await http.get(Uri.parse('http://35.200.146.31/GetWin'));
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
       final winnerData = jsonData['GetWin'];
