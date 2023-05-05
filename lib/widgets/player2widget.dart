@@ -38,7 +38,7 @@ class Player2Widget extends StatelessWidget {
                   'Player 2',
                   style: TextStyle(
                     fontSize: MediaQuery.of(context).size.width * 0.012,
-                    color: Color.fromARGB(255, 3, 38, 66),
+                    color: Color.fromARGB(255, 216, 219, 221),
                     fontWeight: FontWeight.bold,
                   ),
                 ),

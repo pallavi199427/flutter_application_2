@@ -21,7 +21,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
   int selectedHandIndex = -1;
   List<List<PlayingCard>> allHands = [];
   bool showButton = false;
-  String ip = '35.200.146.31';
+  String ip = '127.0.0.1';
   bool isPlayer2Turn = false;
   bool _showBottomBarTimer = true;
   bool _showPlayer2Timer = false;
@@ -174,22 +174,28 @@ class _MyHomePageState2 extends State<MyHomePage2> {
       }));
       remainingCards = ClosedDeck;
 
-      if (jsonData.containsKey('CardPick')) {
-        final CardPickData = jsonData['CardPick'];
-        List<PlayingCard> PickedCard1 =
-            List<PlayingCard>.from(CardPickData.map((card) {
-          final cardValue = (card['CardValue']);
-          final suit = card['Suit'];
-          return PlayingCard(
-            Suit.values.byName(suit),
-            CardValue.values.byName(cardValue),
-          );
-        }));
-        PickedCard = PickedCard1;
-      } else {
-        print("no printing");
-        // Handle case where 'CardPick' key is not present in jsonData
-      }
+      setState(() {});
+    } else {
+      throw Exception('Failed to load game state');
+    }
+  }
+
+  fetchCardPick(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      final CardPick = jsonData['CardPick'];
+      List<PlayingCard> PickedCard =
+          List<PlayingCard>.from(CardPick.map((card) {
+        final cardValue = (card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      PickedCard = PickedCard;
 
       setState(() {});
     } else {
@@ -223,6 +229,7 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           );
         }));
         remainingCards = ClosedDeck;
+        _togglePlayer2Timer();
 
         // show the "submit a card for show" alert box
         showDialog(
@@ -244,10 +251,11 @@ class _MyHomePageState2 extends State<MyHomePage2> {
             );
           },
         );
-        fetchData('http://$ip/InitializeGame');
       }
 
-      setState(() {});
+      setState(() {
+        fetchData('http://$ip/InitializeGame');
+      });
 
       await Future.delayed(Duration(seconds: 3));
 
@@ -258,15 +266,65 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     }
   }
 
-  void PickFromClosedDeck() {
-    fetchData('http://$ip/PickFromClosedDeck');
-    isPickfromClosedDeck = true;
+  void PickFromClosedDeck() async {
+    final response = await http.get(Uri.parse('http://$ip/PickFromClosedDeck'));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+
+      final CardPick = jsonData['CardPick'];
+      List<PlayingCard> PickedCard =
+          List<PlayingCard>.from(CardPick.map((card) {
+        final cardValue = (card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      PickedCard = PickedCard;
+
+      final lastHand = allHands.last;
+      setState(() {
+        lastHand.add(PickedCard.first);
+      });
+      setState(() {
+        isPickfromClosedDeck = false;
+        allHands[allHands.length - 1] = lastHand;
+      });
+    } else {
+      throw Exception('Failed to load game state');
+    }
   }
 
-  void PickFromOpenDeck() {
-    fetchData('http://$ip/PickFromOpenDeck');
+  void PickFromOpenDeck() async {
+    final response = await http.get(Uri.parse('http://$ip/PickFromOpenDeck'));
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
 
-    isPickfromClosedDeck = true;
+      final CardPick = jsonData['CardPick'];
+      List<PlayingCard> PickedCard =
+          List<PlayingCard>.from(CardPick.map((card) {
+        final cardValue = (card['CardValue']);
+        final suit = card['Suit'];
+        return PlayingCard(
+          Suit.values.byName(suit),
+          CardValue.values.byName(cardValue),
+        );
+      }));
+      PickedCard = PickedCard;
+
+      final lastHand = allHands.last;
+      setState(() {
+        lastHand.add(PickedCard.first);
+      });
+      setState(() {
+        isPickfromClosedDeck = false;
+        allHands[allHands.length - 1] = lastHand;
+      });
+    } else {
+      throw Exception('Failed to load game state');
+    }
+    //isPickfromClosedDeck = true;
   }
 
   _discardCardHttpCall(PlayingCard card) async {
@@ -277,17 +335,18 @@ class _MyHomePageState2 extends State<MyHomePage2> {
     });
 
     try {
-      final response = http.post(Uri.parse(url),
+      final response = await http.post(Uri.parse(url),
           headers: {"Content-Type": "application/json"}, body: cardJson);
 
       setState(() {
         _toggleBottomBarTimer();
         _togglePlayer2Timer();
         fetchData('http://$ip/InitializeGame');
-        fetchOpponentMove();
+        fetchOpponentMove(); // wait for _discardCardHttpCall to complete before continuing with fetchOpponentMove
       });
     } catch (error) {
-      print("here");
+      // handle error
+      print(error);
     }
   }
 
@@ -383,8 +442,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
           toggleTimerVisibility: _toggleBottomBarTimer,
           onComplete: () {
             _toggleBottomBarTimer();
-
-            bottomBar.getWin(context);
 
             _togglePlayer2Timer();
           }, // <-- Pass it here
@@ -512,8 +569,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       context, "Please select a card to discard");
                 } else {
                   discardPile.removeAt(0);
-
-                  PickFromOpenDeck();
+                  setState(() {
+                    PickFromOpenDeck();
+                  });
                 }
               },
             ),
@@ -533,18 +591,6 @@ class _MyHomePageState2 extends State<MyHomePage2> {
               value.length > element.length ? value : element)
           .length;
     }
-
-    if (isPickfromClosedDeck) {
-      final lastHand = allHands.last;
-      for (var card in PickedCard) {}
-      setState(() {
-        lastHand.addAll(PickedCard);
-      });
-      setState(() {
-        isPickfromClosedDeck = false;
-        allHands[allHands.length - 1] = lastHand;
-      });
-    } else {}
 
     return Positioned(
       top: MediaQuery.of(context).size.height * 0.45,
@@ -651,16 +697,15 @@ class _MyHomePageState2 extends State<MyHomePage2> {
                       ),
                       onPressed: () {
                         if (buttonText == 'Discard') {
-                          final discardedCard1 = allHands[selectedHandIndex]
-                              .removeAt(selectedCardIndex1);
-                          hand.remove(discardedCard1);
-                          selectedCardIndex1 = -1;
-                          selectedCards.length = 0;
                           setState(() {
+                            final discardedCard1 = allHands[selectedHandIndex]
+                                .removeAt(selectedCardIndex1);
+                            hand.remove(discardedCard1);
                             discardPile.add(discardedCard1);
+                            _discardCardHttpCall(discardedCard1);
+                            selectedCardIndex1 = -1;
+                            selectedCards.length = 0;
                           });
-
-                          _discardCardHttpCall(discardedCard1);
                         } else if (buttonText == 'Group') {
                           setState(() {
                             // Combine selected cards into a single list
@@ -709,14 +754,9 @@ class _MyHomePageState2 extends State<MyHomePage2> {
 
               final newHandIndex = newIndex ~/ maxCardsPerHand;
               final newCardIndex = newIndex % maxCardsPerHand;
-              final newCard = allHands[newHandIndex].length > newCardIndex
-                  ? allHands[newHandIndex][newCardIndex]
-                  : null;
+              final newHandLength = allHands[newHandIndex].length;
 
-              if (newCard != null) {
-                allHands[oldHandIndex][oldCardIndex] = newCard;
-                allHands[newHandIndex][newCardIndex] = oldCard;
-              } else {
+              if (newHandLength < maxCardsPerHand) {
                 allHands[newHandIndex].add(oldCard);
                 allHands[oldHandIndex].removeAt(oldCardIndex);
               }

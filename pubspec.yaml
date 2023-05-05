@@ -43,6 +43,8 @@ dependencies:
   random_avatar: ^0.0.8
   shelf: ^1.4.0
   shelf_proxy: ^1.0.2
+  defer_pointer: ^0.0.2
+  flutter_reorderable_grid_view: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -164,3 +166,5 @@ animating: ^2.0.0
 responsive: ^0.3.11+11
 reorderables: ^0.6.0
 random_avatar: any
+defer_pointer: ^0.0.2
+flutter_reorderable_grid_view: ^4.0.0
