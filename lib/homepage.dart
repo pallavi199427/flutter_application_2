@@ -1,15 +1,15 @@
+// ignore_for_file: prefer_const_constructors, sort_child_properties_last
+
 import 'dart:convert';
-import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:playing_cards/playing_cards.dart';
 import 'package:flutter_application_2/widgets/bottomBar.dart';
-import 'package:flutter_application_2/widgets/player2widget.dart';
 import 'package:flutter_application_2/widgets/background.dart';
-import 'package:flutter_application_2/widgets/cards.dart';
 
 class MyHomePage extends StatefulWidget {
   @override
+  // ignore: library_private_types_in_public_api
   _MyHomePageState createState() => _MyHomePageState();
   void onCardDiscarded(PlayingCard currentCard) {}
 }
@@ -167,136 +167,223 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   Widget _buildCurrentCard() {
     int maxCardsPerHand = 10;
-    bool isFirstHand = true;
-    int selectedIndex = -1;
+    int startingHandIndex = -1;
+    int startingCardIndex = -1;
+    List<Widget> cardWidgets = List.generate(
+        allHands.isEmpty ? 0 : allHands.length * maxCardsPerHand, (index) {
+      final handIndex = index ~/ maxCardsPerHand;
+      final cardIndex = index % maxCardsPerHand;
+      final hand = allHands.isNotEmpty ? allHands[handIndex] : null;
+      final card =
+          hand != null && hand.length > cardIndex ? hand[cardIndex] : null;
+      if (card == null) {
+        return SizedBox(key: Key('empty$index'));
+      }
 
-    if (allHands.isNotEmpty) {
-      maxCardsPerHand = allHands
-          .reduce((value, element) =>
-              value.length > element.length ? value : element)
-          .length;
-    }
+      return SizedBox(
+        child: Stack(
+          children: [
+            Positioned(
+              child: Container(
+                width: 100.0,
+                height: 120.0,
+                child: DragTarget<PlayingCard>(
+                  onAccept: (card) {
+                    setState(() {
+                      allHands[startingHandIndex].removeAt(startingCardIndex);
+                      allHands[handIndex].insert(cardIndex, card);
+                    });
+                  },
+                  builder: (context, candidateData, rejectedData) {
+                    return SizedBox(
+                      width: 100.0,
+                      height: 120.0,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            child: Container(),
+                          ),
+                          Positioned(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (selectedCardIndexes.contains(index)) {
+                                    // The current card is already selected, so unselect it
+                                    selectedCardIndexes.remove(index);
+                                  } else {
+                                    // Select the current card
+                                    selectedCardIndexes.add(index);
+                                  }
 
-    return Positioned(
-      top: MediaQuery.of(context).size.height * 0.65,
-      width: MediaQuery.of(context).size.width,
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height,
-        child: ReorderableListView.builder(
-          proxyDecorator: proxyDecorator,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.only(left: 8, top: 2, bottom: 2),
-          itemBuilder: (context, index) {
-            final handIndex = index ~/ maxCardsPerHand;
-            final cardIndex = index % maxCardsPerHand;
-            final hand = allHands.isNotEmpty ? allHands[handIndex] : null;
-            final card = hand != null && hand.length > cardIndex
-                ? hand[cardIndex]
-                : null;
+                                  int totalCardCount = allHands.fold<int>(
+                                      0, (sum, hand) => sum + hand.length);
 
-            if (card == null) {
-              // Return an empty SizedBox to hide the item
-              return SizedBox(key: Key('empty$index'));
-            }
+                                  if (selectedCardIndexes.length == 1) {
+                                    buttonText = 'Discard';
+                                    showButton = true;
+                                  } else if (selectedCardIndexes.length > 1) {
+                                    buttonText = 'Group';
+                                    showButton = true;
+                                  } else {
+                                    showButton = false;
+                                  }
+                                }); // Add your desired logic for the tap gesture here
+                              },
+                              child: Draggable<PlayingCard>(
+                                axis: Axis.horizontal,
+                                data: card,
+                                onDragStarted: () {
+                                  startingHandIndex = handIndex;
+                                  startingCardIndex = cardIndex;
+                                },
+                                child: SizedBox(
+                                  height: 100.0,
+                                  width: 80.0,
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: selectedCardIndexes.contains(
+                                                    handIndex *
+                                                            maxCardsPerHand +
+                                                        cardIndex)
+                                                ? Colors.red
+                                                : Colors.transparent,
+                                            width: 2.0,
+                                          ),
+                                        ),
+                                        child: PlayingCardView(
+                                          card: card,
+                                          showBack: false,
+                                          elevation: 2.0,
+                                        ),
+                                      ),
+                                      if (showButton &&
+                                          selectedCardIndexes.contains(index) &&
+                                          index == selectedCardIndexes.last)
+                                        Transform.translate(
+                                          offset: Offset(10, -10),
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              if (buttonText == 'Discard') {
+                                                setState(() {
+                                                  // Get the selected card
+                                                  final discardedCard = allHands[
+                                                          selectedCardIndexes
+                                                                  .first ~/
+                                                              maxCardsPerHand][
+                                                      selectedCardIndexes
+                                                              .first %
+                                                          maxCardsPerHand];
 
-            bool isSelectedCard = selectedIndex == index;
+                                                  // Remove the selected card from the hand and add it to the discard pile
+                                                  allHands[selectedCardIndexes
+                                                              .first ~/
+                                                          maxCardsPerHand]
+                                                      .removeAt(
+                                                          selectedCardIndexes
+                                                                  .first %
+                                                              maxCardsPerHand);
+                                                  discardPile
+                                                      .add(discardedCard);
+                                                  // _discardCardHttpCall(discardedCard);
 
-            double screenWidth = MediaQuery.of(context).size.width;
-            double currentOverlap = -screenWidth / 30;
-            final dx = cardIndex * -15.0;
+                                                  // Clear the selected card index
+                                                  selectedCardIndexes.clear();
+                                                });
+                                              } else if (buttonText ==
+                                                  'Group') {
+                                                setState(() {
+                                                  // Combine selected cards into a single list
+                                                  final selectedHand =
+                                                      selectedCardIndexes
+                                                          .map((index) {
+                                                    final handIndex = index ~/
+                                                        maxCardsPerHand;
+                                                    final cardIndex =
+                                                        index % maxCardsPerHand;
+                                                    return allHands[handIndex]
+                                                        [cardIndex];
+                                                  }).toList();
 
-            return Stack(
-              key: Key('$handIndex$cardIndex'),
-              children: [
-                Transform.translate(
-                  key: Key('$handIndex$cardIndex'),
-                  offset: Offset(dx, 0),
-                  child: GestureDetector(
-                    key: Key('$handIndex$cardIndex'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      setState(() {
-                        if (selectedCardIndexes.contains(index)) {
-                          // The current card is already selected, so unselect it
-                          selectedCardIndexes.remove(index);
-                        } else {
-                          // Select the current card
-                          selectedCardIndexes.add(index);
-                        }
+                                                  // Remove selected cards from their original hands
+                                                  for (final index
+                                                      in selectedCardIndexes
+                                                          .reversed) {
+                                                    final handIndex = index ~/
+                                                        maxCardsPerHand;
+                                                    final cardIndex =
+                                                        index % maxCardsPerHand;
+                                                    allHands[handIndex]
+                                                        .removeAt(cardIndex);
+                                                  }
 
-                        int totalCardCount = allHands.fold<int>(
-                            0, (sum, hand) => sum + hand.length);
-                        if (totalCardCount == 13) {
-                          buttonText = 'Discard';
-                          showButton = true;
-                        } else if (selectedCardIndexes.isNotEmpty) {
-                          buttonText = 'Group (${selectedCardIndexes.length})';
-                          showButton = true;
-                        } else {
-                          showButton = false;
-                        }
-                      });
-                    },
-                    child: SizedBox(
-                      key: Key('$handIndex$cardIndex'),
-                      height: MediaQuery.of(context).size.height * 0.24,
-                      child: ReorderableDragStartListener(
-                        index: index,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: selectedCardIndexes.contains(
-                                      handIndex * maxCardsPerHand + cardIndex)
-                                  ? Colors.blue
-                                  : Colors.transparent,
+                                                  // Add selected cards to the new hand at position 0
+                                                  allHands.insert(
+                                                      0, selectedHand);
+
+                                                  // Clear selection state
+                                                  selectedCardIndexes.clear();
+                                                  buttonText = '';
+                                                  showButton = false;
+                                                });
+                                              } else {}
+                                            },
+                                            child: Text(buttonText),
+                                            style: ElevatedButton.styleFrom(
+                                              padding: EdgeInsets
+                                                  .zero, // remove button padding
+                                              tapTargetSize: MaterialTapTargetSize
+                                                  .shrinkWrap, // remove extra padding around button
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                feedback: Material(
+                                  child: SizedBox(
+                                    height: 100.0,
+                                    width: 80.0,
+                                    child: Container(
+                                      color: Color.fromARGB(
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                      ),
+                                      child: PlayingCardView(
+                                        card: card,
+                                        showBack: false,
+                                        elevation: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                childWhenDragging: SizedBox(),
+                              ),
                             ),
                           ),
-                          child: PlayingCardView(
-                            card: card,
-                            showBack: false,
-                            style: myCardStyles,
-                          ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
-
-                if (showButton &&
-                    selectedCardIndexes.contains(index) &&
-                    index == selectedCardIndexes.last)
-                  Positioned(
-                    // Position the button as desired
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Handle button press as desired
-                      },
-                      child: Text(buttonText),
-                    ),
-                  )
-                else
-                  SizedBox.shrink() // Hide the button if no cards are selected
-              ],
-            );
-          },
-          itemCount: allHands.isEmpty ? 0 : allHands.length * maxCardsPerHand,
-          onReorder: (oldIndex, newIndex) {},
+              ),
+            ),
+          ],
         ),
+      );
+    });
+    return Positioned(
+      top: MediaQuery.of(context).size.height * 0.65,
+      width: MediaQuery.of(context).size.width * 1.4,
+      child: Stack(
+        children: [
+          FlatCardFan(children: cardWidgets),
+        ],
       ),
-    );
-  }
-
-  Widget proxyDecorator(Widget child, int index, Animation<double> animation) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (BuildContext context, Widget? child) {
-        return Material(
-          elevation: 10,
-          color: Colors.transparent,
-          child: child,
-        );
-      },
-      child: child,
     );
   }
 }

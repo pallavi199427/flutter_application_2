@@ -160,7 +160,11 @@ flutter:
  
 
 
-playing_cards: ^0.3.1+9
+playing_cards:
+    git:
+      url: https://github.com/pallavi199427/playing_cards.git
+
+
 physics: ^1.0.0
 animating: ^2.0.0
 responsive: ^0.3.11+11

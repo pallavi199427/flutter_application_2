@@ -14,7 +14,7 @@ class Rummy extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Rummy Game',
-      home: MyHomePage(),
+      home: MyHomePage2(), // Position the button as desired
     );
   }
 }
