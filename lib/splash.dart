@@ -61,11 +61,11 @@ class _SplashState extends State<Splash> {
         child: Center(
           child: _showTimer
               ? Text(
-                  "Game will start in $_timerSecondsRemaining seconds...",
+                  "Please wait while game starts in $_timerSecondsRemaining seconds...",
                   style: TextStyle(fontSize: 20),
                 )
               : Text(
-                  'Welcome to the game!',
+                  'To ensure fair play Player2 details will be displayed on screen ',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
         ),

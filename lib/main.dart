@@ -4,17 +4,31 @@ import 'package:flutter_application_2/homepage2.dart';
 import 'package:flutter_application_2/homepage.dart';
 import 'package:flutter_application_2/splash.dart';
 import 'package:flutter_application_2/widgets/cardpickup.dart';
+import 'package:flutter_application_2/widgets/ShrinkAnimation.dart';
 
-Future<void> main() async {
+void main() {
+  WidgetsFlutterBinding.ensureInitialized(); // Initialize Flutter binding
+
   runApp(Rummy());
 }
 
-class Rummy extends StatelessWidget {
+class Rummy extends StatefulWidget {
+  @override
+  _RummyState createState() => _RummyState();
+}
+
+class _RummyState extends State<Rummy> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Rummy Game',
-      home: MyHomePage2(), // Position the button as desired
+      home: MyHomePage(),
     );
   }
 }

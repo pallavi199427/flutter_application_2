@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_literals_to_create_immutables, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:random_avatar/random_avatar.dart';
 
@@ -38,9 +40,9 @@ class _BottomBarState extends State<BottomBar> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: Color.fromARGB(255, 7, 61, 141),
-            contentPadding: EdgeInsets.fromLTRB(24, 20, 24, 0),
-            title: Center(
+            backgroundColor: const Color.fromARGB(255, 7, 61, 141),
+            contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+            title: const Center(
               child: Text(
                 ' ',
                 textAlign: TextAlign.center,
@@ -53,7 +55,7 @@ class _BottomBarState extends State<BottomBar> {
             content: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
               ),
@@ -65,10 +67,10 @@ class _BottomBarState extends State<BottomBar> {
                     height: 30,
                     width: 70,
                     decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 9, 132, 13),
+                      color: const Color.fromARGB(255, 9, 132, 13),
                       borderRadius: BorderRadius.circular(2),
                     ),
-                    child: Center(
+                    child: const Center(
                       child: Text(
                         'Leave Game',
                         style: TextStyle(
@@ -90,7 +92,7 @@ class _BottomBarState extends State<BottomBar> {
       );
     }
 
-    final snackBar = SnackBar(
+    final snackBar = const SnackBar(
       content: Text('Please wait ....Restarting game...'),
     );
 
@@ -98,7 +100,7 @@ class _BottomBarState extends State<BottomBar> {
 
     final url = 'http://127.0.0.1:8000/Reset';
     await http.post(Uri.parse(url)).then((value) {
-      Future.delayed(Duration(seconds: 7), () async {
+      Future.delayed(const Duration(seconds: 7), () async {
         final url1 = 'http://127.0.0.1:8000/InitializeGame';
         await http.post(Uri.parse(url1));
         final response = await http.post(Uri.parse(url1));
@@ -115,7 +117,7 @@ class _BottomBarState extends State<BottomBar> {
           );
         } else {
           // If the response is not valid, retry initialization after a delay
-          await Future.delayed(Duration(seconds: 5));
+          await Future.delayed(const Duration(seconds: 5));
         }
       });
     });
@@ -137,7 +139,7 @@ class _BottomBarState extends State<BottomBar> {
               durationInSeconds: 30,
               onTimerComplete: () {
                 getWin(context);
-                widget.onComplete(); // <-- Call it here
+                widget.onComplete();
               },
             ),
           const SizedBox(width: 8.0), // Add spacing between the widgets
@@ -169,7 +171,7 @@ class _BottomBarState extends State<BottomBar> {
                 },
               ),
               ElevatedButton(
-                child: Text('Restart Game'),
+                child: const Text('Restart Game'),
                 onPressed: () {
                   _restartGame();
                 },
@@ -181,11 +183,11 @@ class _BottomBarState extends State<BottomBar> {
                   builder: (BuildContext context, AsyncSnapshot snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting ||
                         _isRestarting) {
-                      return CircularProgressIndicator();
+                      return const CircularProgressIndicator();
                     } else if (snapshot.hasError) {
                       return Text('Error: ${snapshot.error}');
                     } else {
-                      return Text('Game restarted!');
+                      return const Text('Game restarted!');
                     }
                   },
                 ),
@@ -220,7 +222,7 @@ class _BottomBarState extends State<BottomBar> {
         context: context,
         builder: (BuildContext context) {
           return Dialog(
-            backgroundColor: Color.fromARGB(255, 73, 140, 223),
+            backgroundColor: const Color.fromARGB(255, 73, 140, 223),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -235,54 +237,54 @@ class _BottomBarState extends State<BottomBar> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           'Player Name',
                           style: TextStyle(color: Colors.white),
                         ),
-                        Text(
+                        const Text(
                           'Result',
                           style: TextStyle(color: Colors.white),
                         ),
-                        Text(
+                        const Text(
                           'Score',
                           style: TextStyle(color: Colors.white),
                         ),
-                        Text(
+                        const Text(
                           ' ',
                           style: TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Player 1'),
+                      const Text('Player 1'),
                       Text(
                         Player1Label,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(''),
+                      const Text(''),
                     ],
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Player 2'),
+                      const Text('Player 2'),
                       Text(
                         Player2Label,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(''),
+                      const Text(''),
                     ],
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop();
